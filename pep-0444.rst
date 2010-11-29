@@ -412,7 +412,29 @@ Such "filters" can perform such functions as:
 
 The filtering API **may** be implemented by WSGI2 servers, and
 filtering functionality can be added to non-supporting servers by
-utilizing a middleware layer which implements the filtering API.
+utilizing a middleware layer which implements the filtering API::
+
+   class FilteringMiddleware(object):
+      def __init__(self, app, ingress=None, egress=None):
+         """Store the applciation and filters."""
+         self.app = app
+         self.ingress = [] if ingress is None else ingress
+         self.egress = [] if egress is None else egress
+         super(FilteringMiddleware, self).__init__()
+      
+      def __call__(self, environ):
+         """Filter inbound (ingress), run the application, then filter
+         outbound (egress)."""
+         
+         for filter in self.ingress:
+            filter(environ)
+         
+         result = self.app(environ)
+         
+         for filter in self.egress:
+            result = filter(*result)
+         
+         return result
 
 Specifying the filter lists for ingress and egress is left as an
 implementation detail for the server or middleware.
