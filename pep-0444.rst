@@ -2,7 +2,8 @@ PEP: 444
 Title: Python Web Server Gateway Interface v2.0
 Version: $Revision: 84850 $
 Last-Modified: $Date: 2010-09-16 12:13:52 -0400 (Thu, 16 Sep 2010) $
-Author: Chris McDonough <chrism@plope.com>,
+Author: Alice Bevan-McGregor <alice@gothcandy.com>,
+        Chris McDonough <chrism@plope.com>,
         Armin Ronacher <armin.ronacher@active-4.com>
 Discussions-To: Python Web-SIG <web-sig@python.org>
 Status: Draft
@@ -34,7 +35,7 @@ Python currently boasts a wide variety of web application frameworks
 which use the WSGI 1.0 protocol.  However, due to changes in the
 language, the WSGI 1.0 protocol is not compatible with Python 3.  This
 specification describes a standardized WSGI-like protocol that lets
-Python 2.6, 2.7 and 3.1+ applications communicate with web servers.
+Python 2.6+ and 3.1+ applications communicate with web servers.
 
 Applications and servers which are written to this specification are
 meant to work properly under Python 2.6.X, Python 2.7.X and Python
@@ -65,11 +66,13 @@ Change History
 2010-11-28
 ----------
 
-- Changed references to Web3 in the body of the document to refer
-  instead to WSGI2 or wsgi2 as appropriate.  Environment keys are now
-  prefixed by ``wsgi.`` instead of ``web3.``.
+- Changed references to ``Web3`` in the body of the document to refer
+  instead to ``WSGI2``, ``wsgi2``, or ``wsgi`` as appropriate.
+  For example, environment keys are now prefixed by ``wsgi.`` instead
+  of ``web3.``.
 - References to Web3 in the change log and commentary have been left
   intact.
+- Added first draft of the WSGI2 filtering API.
 
 
 2010-09-16
@@ -120,8 +123,8 @@ Change History
 - ``PATH_INFO`` and ``SCRIPT_NAME`` are now assumed to be
   non-url-decoded (%2F and other hex-escaped characters intact).
 
-Differences from WSGI
-=====================
+Differences from WSGI 1
+=======================
 
 - The ``wsgi.version`` environment variable is now ``(2, 0)``.
 
@@ -182,7 +185,7 @@ application's deployer to write a short script to create an instance
 of the server or gateway, and supply it with the application object.
 Other servers and gateways may use configuration files or other
 mechanisms to specify where an application object should be imported
-from, or otherwise obtained.
+from or otherwise obtained.
 
 In addition to "pure" servers/gateways and applications/frameworks, it
 is also possible to create "middleware" components that implement both
@@ -190,6 +193,15 @@ sides of this specification.  Such components act as an application to
 their containing server, and as a server to a contained application,
 and can be used to provide extended APIs, content transformation,
 navigation, and other useful functions.
+
+A third form of application extension, beyond middleware, is described
+in this document.  "Filters" are similar to middleware, though instead
+of wrapping an application in multiple layers, recursively descending
+from server through to application and returning in the opposite
+direction, filters provide a mechanism to alter the request
+environment before being passed to the application/middlware stack,
+and a mechanism for altering the response returned by the application/
+middleware stack.
 
 Throughout this specification, we will use the term "application
 callable" to mean "a function, a method, or an instance with a
@@ -253,7 +265,7 @@ The Server/Gateway Side
 -----------------------
 
 The server or gateway invokes the application callable once for each
-request it receives from an HTTP client, that is directed at the
+request it receives from an HTTP client that is directed at the
 application.  To illustrate, here is a simple CGI gateway, implemented
 as a function taking an application object.  Note that this simple
 example has limited error handling, because by default an uncaught
@@ -336,8 +348,6 @@ functions as:
 
 * Load balancing and remote processing, by forwarding requests and
   responses over a network.
-
-* Perform content postprocessing, such as applying XSL stylesheets.
 
 The presence of middleware in general is transparent to both the
 "server/gateway" and the "application/framework" sides of the
@@ -444,6 +454,72 @@ methods.
 
 Finally, servers and gateways **must not** directly use any other
 attributes of the ``body`` iterable returned by the application.
+
+
+Filters
+-------
+
+A large amount of middleware only applies changes to the environment
+coming in from the server before reaching the application, or,
+conversely, only applies transformations to the data returned by
+the application.  Additionally, middleware, by wrapping applications
+and other middleware in a recursive structure, is less efficient than
+a "flat" model.  Filters fill the need for efficient ingress- or
+egress-only modifications.
+
+Such "filters" can perform such functions as:
+
+* Perform additional processing on the incoming request, such as
+  transforming HTTP GET arguments.
+
+* Perform content postprocessing, such as applying XSL stylesheets or
+  GZip compression.
+
+The filtering API **may** be implemented by WSGI2 servers, and
+filtering functionality can be added to non-supporting servers by
+utilizing a middleware layer which implements the filtering API.
+
+Specifying the filter lists for ingress and egress is left as an
+implementation detail for the server or middleware.
+
+
+Ingress Filters
+===============
+
+Ingress filters **must** accept a single positional argument with the
+same API as an application, illustrated above.  Ingress filters may
+then modify the WSGI2 environment, and **must** return ``None``.
+
+
+Egress Filters
+==============
+
+Egress filters **must** accept three positional arguments conforming
+to the values returned by an application, illustrated above.  An
+egress filter **may** then modify or construct an entirely new
+response and **must** return a 3-tuple with the same API as an
+application, as illustrated above.
+
+
+Compatibility
+=============
+
+Ingress and egress filters can be utilized by a light-weight
+middleware layer to perform the actual work, allowing both use as
+efficient ingress and/or egress filters **and** as middleware.  For
+example::
+
+   class CompressionMiddleware(object):
+      def __init__(self, app):
+         """Store the wrapped application and configure the egress
+         filter."""
+         self.app = app
+         self.egress = CompressionEgressFilter()
+         super(CompressionEgressFilter, self).__init__()
+      
+      def __call__(self, environ):
+         """Call the applicaiton, filtering the result."""
+         return self.egress(*self.app(environ))
 
 
 ``environ`` Variables
