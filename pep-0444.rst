@@ -1,5 +1,5 @@
 PEP: 444
-Title: Python Web3 Interface
+Title: Python Web Server Gateway Interface v2.0
 Version: $Revision: 84850 $
 Last-Modified: $Date: 2010-09-16 12:13:52 -0400 (Thu, 16 Sep 2010) $
 Author: Chris McDonough <chrism@plope.com>,
@@ -35,21 +35,10 @@ which use the WSGI 1.0 protocol.  However, due to changes in the
 language, the WSGI 1.0 protocol is not compatible with Python 3.  This
 specification describes a standardized WSGI-like protocol that lets
 Python 2.6, 2.7 and 3.1+ applications communicate with web servers.
-Web3 is clearly a WSGI derivative; it only uses a different name than
-"WSGI" in order to indicate that it is not in any way backwards
-compatible.
-
-.. note::
-
-   If the PEP is accepted, and the Web-SIG community agrees, we may
-   yet retitle the spec as "WSGI2", with attendant changes to environ
-   key names.  In the meantime, if the PEP is not acceped by the
-   Web-SIG community, there will be no confusion if a succeeding PEP
-   *is* named WSGI2.
 
 Applications and servers which are written to this specification are
 meant to work properly under Python 2.6.X, Python 2.7.X and Python
-3.1+.  Neither an application nor a server that implements the Web3
+3.1+.  Neither an application nor a server that implements the WSGI2
 specification can be easily written which will work under Python 2
 versions earlier than 2.6 nor Python 3 versions earlier than 3.1.
 
@@ -65,13 +54,23 @@ versions earlier than 2.6 nor Python 3 versions earlier than 3.1.
 
    Python 2.6 is the first Python version that supported an alias for
    ``bytes`` and the ``b"foo"`` literal syntax.  This is why it is the
-   minimum version supported by Web3.
+   minimum version supported by WSGI2.
 
 Explicability and documentability are the main technical drivers for
 the decisions made within the standard.
 
 Change History
 ==============
+
+2010-11-28
+----------
+
+- Changed references to Web3 in the body of the document to refer
+  instead to WSGI2 or wsgi2 as appropriate.  Environment keys are now
+  prefixed by ``wsgi.`` instead of ``web3.``.
+- References to Web3 in the change log and commentary have been left
+  intact.
+
 
 2010-09-16
 ----------
@@ -124,9 +123,7 @@ Change History
 Differences from WSGI
 =====================
 
-- All protocol-specific environment names are prefixed with ``web3.``
-  rather than ``wsgi.``, eg. ``web3.input`` rather than
-  ``wsgi.input``.
+- The ``wsgi.version`` environment variable is now ``(2, 0)``.
 
 - All values present as environment dictionary *values* are explicitly
   *bytes* instances instead of native strings.  (Environment *keys*
@@ -142,10 +139,10 @@ Differences from WSGI
 - No ``start_response()`` callback (and therefore no ``write()``
   callable nor ``exc_info`` data).
 
-- The ``readline()`` function of ``web3.input`` must support a size
+- The ``readline()`` function of ``wsgi.input`` must support a size
   hint parameter.
 
-- The ``read()`` function of ``web3.input`` must be length delimited.
+- The ``read()`` function of ``wsgi.input`` must be length delimited.
   A call without a size argument must not read more than the content
   length header specifies.  In case a content length header is absent
   the stream must not return anything on read.  It must never request
@@ -176,7 +173,7 @@ Differences from WSGI
 Specification Overview
 ======================
 
-The Web3 interface has two sides: the "server" or "gateway" side, and
+The WSGI2 interface has two sides: the "server" or "gateway" side, and
 the "application" or "framework" side.  The server side invokes a
 callable object that is provided by the application side.  The
 specifics of how that object is provided are up to the server or
@@ -220,10 +217,10 @@ function that creates a new instance on each call.
 .. note::
 
    Although we refer to it as an "application" object, this should not
-   be construed to mean that application developers will use Web3 as a
-   web programming API.  It is assumed that application developers
+   be construed to mean that application developers will use WSGI2 as
+   a web programming API.  It is assumed that application developers
    will continue to use existing, high-level framework services to
-   develop their applications.  Web3 is a tool for framework and
+   develop their applications.  WSGI2 is a tool for framework and
    server developers, and is not intended to directly support
    application developers.)
 
@@ -291,20 +288,20 @@ server.
     def run_with_cgi(application):
 
         environ = get_environ()
-        environ['web3.input']         = sys.stdin
-        environ['web3.errors']        = sys.stderr
-        environ['web3.version']       = (1, 0)
-        environ['web3.multithread']   = False
-        environ['web3.multiprocess']  = True
-        environ['web3.run_once']      = True
+        environ['wsgi.input']         = sys.stdin
+        environ['wsgi.errors']        = sys.stderr
+        environ['wsgi.version']       = (2, 0)
+        environ['wsgi.multithread']   = False
+        environ['wsgi.multiprocess']  = True
+        environ['wsgi.run_once']      = True
         environ['SCRIPT_NAME'] = url_quote(environ['SCRIPT_NAME'])
         environ['PATH_INFO] = url_quote(environ['PATH_INFO'])
-        environ['web3.path_requoted'] = True
+        environ['wsgi.path_requoted'] = True
 
         if environ.get('HTTPS', b'off') in (b'on', b'1'):
-            environ['web3.url_scheme'] = b'https'
+            environ['wsgi.url_scheme'] = b'https'
         else:
-            environ['web3.url_scheme'] = b'http'
+            environ['wsgi.url_scheme'] = b'http'
 
         status, headers, body = application(environ)
 
@@ -398,7 +395,7 @@ environment variables.  This object **must** be a builtin Python
 dictionary (*not* a subclass, ``UserDict`` or other dictionary
 emulation), and the application is allowed to modify the dictionary in
 any way it desires.  The dictionary must also include certain
-Web3-required variables (described in a later section), and may also
+WSGI2-required variables (described in a later section), and may also
 include server-specific extension variables, named according to a
 convention that will be described below.
 
@@ -479,9 +476,9 @@ string.  Each value is a bytes instance.
   segment separated by the slash character (``/``).  Unlike CGI, it is
   assumed that segment values containing URL-encoded characters will
   *not* be unquoted: URL-quoted values such as ``%2F`` *will* remain
-  present in ``SCRIPT_NAME`` provided to a Web3 application.  If a
+  present in ``SCRIPT_NAME`` provided to a WSGI2 application.  If a
   server must reconstruct ``SCRIPT_NAME`` to provide a quoted value,
-  it should do so as best it can and set the ``web3.path_requoted``
+  it should do so as best it can and set the ``wsgi.path_requoted``
   environment value to ``True``.
 
 ``PATH_INFO``
@@ -494,9 +491,9 @@ string.  Each value is a bytes instance.
   separated by the slash character (``/``).  Unlike CGI, it is assumed
   that segment values containing URL-encoded characters will *not* be
   unquoted at all: URL-quoted values such as ``%2F`` *will* remain
-  present in ``PATH_INFO`` provided to a Web3 application.  If a
+  present in ``PATH_INFO`` provided to a WSGI2 application.  If a
   server must reconstruct ``PATH_INFO`` to provide a quoted value, it
-  should do so as best it can and set the ``web3.path_requoted``
+  should do so as best it can and set the ``wsgi.path_requoted``
   environment value to ``True``.
 
 ``QUERY_STRING``
@@ -521,7 +518,7 @@ string.  Each value is a bytes instance.
   used in the server's response.  However, for compatibility with CGI
   we have to keep the existing name.)
 
-The following CGI values **may** present be in the Web3 environment.
+The following CGI values **may** present be in the WSGI2 environment.
 Each key is a native string.  Each value is a bytes instances.
 
 ``CONTENT_TYPE``
@@ -548,7 +545,7 @@ extensions.  (For example, web servers that do not publish files will
 not be able to provide a meaningful ``DOCUMENT_ROOT`` or
 ``PATH_TRANSLATED``.)
 
-A Web3-compliant server or gateway **should** document what variables
+A WSGI2-compliant server or gateway **should** document what variables
 it provides, along with their definitions as appropriate.
 Applications **should** check for the presence of any variables they
 require, and have a fallback plan in the event such a variable is
@@ -566,20 +563,21 @@ of type ``str``).
 
 In addition to the CGI-defined variables, the ``environ`` dictionary
 **may** also contain arbitrary operating-system "environment
-variables", and **must** contain the following Web3-defined variables.
+variables", and **must** contain the following WSGI2-defined
+variables.
 
 =====================  ===============================================
 Variable               Value
 =====================  ===============================================
-``web3.version``       The tuple ``(1, 0)``, representing Web3
-                       version 1.0.
+``wsgi.version``       The tuple ``(2, 0)``, representing WSGI
+                       version 2.0.
 
-``web3.url_scheme``    A bytes value representing the "scheme" portion of
+``wsgi.url_scheme``    A bytes value representing the "scheme" portion of
                        the URL at which the application is being
                        invoked.  Normally, this will have the value
                        ``b"http"`` or ``b"https"``, as appropriate.
 
-``web3.input``         An input stream (file-like object) from which bytes
+``wsgi.input``         An input stream (file-like object) from which bytes
                        constituting the HTTP request body can be read.
                        (The server or gateway may perform reads
                        on-demand as requested by the application, or
@@ -588,7 +586,7 @@ Variable               Value
                        other technique for providing such an input
                        stream, according to its preference.)
 
-``web3.errors``        An output stream (file-like object) to which error
+``wsgi.errors``        An output stream (file-like object) to which error
                        output text can be written, for the purpose of
                        recording program or other errors in a
                        standardized and possibly centralized location.
@@ -600,7 +598,7 @@ Variable               Value
                        'write' method of this stream; they may only
                        send text.
 
-                       For many servers, ``web3.errors`` will be the
+                       For many servers, ``wsgi.errors`` will be the
                        server's main error log. Alternatively, this
                        may be ``sys.stderr``, or a log file of some
                        sort.  The server's documentation should
@@ -609,24 +607,24 @@ Variable               Value
                        or gateway may supply different error streams
                        to different applications, if this is desired.
 
-``web3.multithread``   This value should evaluate true if the
+``wsgi.multithread``   This value should evaluate true if the
                        application object may be simultaneously
                        invoked by another thread in the same process,
                        and should evaluate false otherwise.
 
-``web3.multiprocess``  This value should evaluate true if an
+``wsgi.multiprocess``  This value should evaluate true if an
                        equivalent application object may be
                        simultaneously invoked by another process, and
                        should evaluate false otherwise.
 
-``web3.run_once``      This value should evaluate true if the server
+``wsgi.run_once``      This value should evaluate true if the server
                        or gateway expects (but does not guarantee!)
                        that the application will only be invoked this
                        one time during the life of its containing
                        process.  Normally, this will only be true for
                        a gateway based on CGI (or something similar).
 
-``web3.path_requoted`` The spec requires PATH_INFO and SCRIPT_NAME to
+``wsgi.path_requoted`` The spec requires PATH_INFO and SCRIPT_NAME to
                        be *url-quoted* (unlike CGI).  This value
                        should evaluate ``True`` if the ``PATH_INFO``
                        and ``SCRIPT_NAME`` values in this environment
@@ -642,14 +640,14 @@ Finally, the ``environ`` dictionary may also contain server-defined
 variables.  These variables should have names which are native
 strings, composed of only lower-case letters, numbers, dots, and
 underscores, and should be prefixed with a name that is unique to the
-defining server or gateway.  For example, ``mod_web3`` might define
-variables with names like ``mod_web3.some_variable``.
+defining server or gateway.  For example, ``mod_wsgi2`` might define
+variables with names like ``mod_wsgi2.some_variable``.
 
 
 Input Stream
 ~~~~~~~~~~~~
 
-The input stream (``web3.input``) provided by the server must support
+The input stream (``wsgi.input``) provided by the server must support
 the following methods:
 
 =====================  ========
@@ -696,7 +694,7 @@ stream must be a dummy stream that does not return anything.
 Error Stream
 ~~~~~~~~~~~~
 
-The error stream (``web3.errors``) provided by the server must support
+The error stream (``wsgi.errors``) provided by the server must support
 the following methods:
 
 ===================   ==========  ========
@@ -733,18 +731,18 @@ attempt to close this stream, even if it possesses a ``close()``
 method.
 
 
-Values Returned by A Web3 Application
--------------------------------------
+Values Returned by A WSGI2 Application
+--------------------------------------
 
-Web3 applications return a tuple in the form (``status``, ``headers``,
-``body``).  The ``status`` value is assumed by a gateway or server to
-be an HTTP "status" bytes instance like ``b'200 OK'`` or ``b'404 Not
-Found'``.  That is, it is a string consisting of a Status-Code and a
-Reason-Phrase, in that order and separated by a single space, with no
-surrounding whitespace or other characters.  (See RFC 2616, Section
-6.1.1 for more information.)  The string **must not** contain control
-characters, and must not be terminated with a carriage return,
-linefeed, or combination thereof.
+WSGI2 applications return a tuple in the form (``status``,
+``headers``, ``body``).  The ``status`` value is assumed by a gateway
+or server to be an HTTP "status" bytes instance like ``b'200 OK'`` or
+``b'404 Not Found'``.  That is, it is a string consisting of a
+Status-Code and a Reason-Phrase, in that order and separated by a
+single space, with no surrounding whitespace or other characters.
+(See RFC 2616, Section 6.1.1 for more information.)  The string **must
+not** contain control characters, and must not be terminated with a
+carriage return, linefeed, or combination thereof.
 
 The ``headers`` value is assumed by a gateway or server to be a
 literal Python list of ``(header_name, header_value)`` tuples.  Each
@@ -784,16 +782,16 @@ Features`_ section below.)
 Dealing with Compatibility Across Python Versions
 -------------------------------------------------
 
-Creating Web3 code that runs under both Python 2.6/2.7 and Python 3.1+
-requires some care on the part of the developer.  In general, the Web3
-specification assumes a certain level of equivalence between the
+Creating WSGI2 code that runs under both Python 2.6/2.7 and Python
+3.1+ requires some care on the part of the developer.  In general, the
+WSGI2 specification assumes a certain level of equivalence between the
 Python 2 ``str`` type and the Python 3 ``bytes`` type.  For example,
-under Python 2, the values present in the Web3 ``environ`` will be
+under Python 2, the values present in the WSGI2 ``environ`` will be
 instances of the ``str`` type; in Python 3, these will be instances of
 the ``bytes`` type.  The Python 3 ``bytes`` type does not possess all
 the methods of the Python 2 ``str`` type, and some methods which it
 does possess behave differently than the Python 2 ``str`` type.
-Effectively, to ensure that Web3 middleware and applications work
+Effectively, to ensure that WSGI2 middleware and applications work
 across Python versions, developers must do these things:
 
 #) Do not assume comparison equivalence between text values and bytes
@@ -819,7 +817,7 @@ across Python versions, developers must do these things:
    removed, as it's rumored that bytes types may obtain a ``__mod__``
    implementation.
 
-#) ``__getitem__`` should not be used against str values in Web3 code
+#) ``__getitem__`` should not be used against str values in WSGI2 code
    written using Python 2; ``__getitem__`` against Python 3 bytes
    values returns an integer representation of the byte instead of a
    textual one.  If you use this method, your code will work under
@@ -839,14 +837,14 @@ across Python versions, developers must do these things:
    make sure you're concatenating two items of the same type,
    e.g. ``b'abc' + somebytes``.
 
-Web3 expects byte values in other places, such as in all the values
+WSGI2 expects byte values in other places, such as in all the values
 returned by an application.
 
-In short, to ensure compatibility of Web3 application code between
+In short, to ensure compatibility of WSGI2 application code between
 Python 2 and Python 3, in Python 2, treat CGI and server variable
 values in the environment as if they had the Python 3 ``bytes`` API
 even though they actually have a more capable API.  Likewise for all
-status and header values returned by a Web3 application.
+status and header values returned by a WSGI2 application.
 
 
 Buffering and Streaming
@@ -858,7 +856,7 @@ This is a common approach in existing frameworks: the output is
 buffered in a StringIO or similar object, then transmitted all at
 once, along with the response headers.
 
-The corresponding approach in Web3 is for the application to simply
+The corresponding approach in WSGI2 is for the application to simply
 return a single-element ``body`` iterable (such as a list) containing
 the response body as a single string.  This is the recommended
 approach for the vast majority of application functions, that render
@@ -878,7 +876,7 @@ mulitpart boundaries (for "server push"), or just before
 time-consuming tasks (such as reading another block of an on-disk
 file).
 
-Web3 servers, gateways, and middleware **must not** delay the
+WSGI2 servers, gateways, and middleware **must not** delay the
 transmission of any block; they **must** either fully transmit the
 block to the client, or guarantee that they will continue transmission
 even while the application is producing its next block.  A
@@ -895,7 +893,7 @@ three ways:
 3. (Middleware only) send the entire block to its parent
    gateway/server.
 
-By providing this guarantee, Web3 allows applications to ensure that
+By providing this guarantee, WSGI2 allows applications to ensure that
 transmission will not become stalled at an arbitrary point in their
 output data.  This is critical for proper functioning of
 e.g. multipart "server push" streaming, where data between multipart
@@ -926,7 +924,7 @@ All "bytes instances" **must not** :
 The result of using a textlike object where a byteslike object is
 required is undefined.
 
-Values returned from a Web3 app as a status or as response headers
+Values returned from a WSGI2 app as a status or as response headers
 **must** follow RFC 2616 with respect to encoding.  That is, the bytes
 returned must contain a character stream of ISO-8859-1 characters, or
 the character stream should use RFC 2047 MIME encoding.
@@ -957,7 +955,7 @@ may be done in any of several ways:
    with an immediate "100 Continue" response, and proceed normally.
 
 2. Proceed with the request normally, but provide the application with
-   a ``web3.input`` stream that will send the "100 Continue" response
+   a ``wsgi.input`` stream that will send the "100 Continue" response
    if/when the application first attempts to read from the input
    stream.  The read request must then remain blocked until the client
    responds.
@@ -985,12 +983,12 @@ sense, a server should consider itself to be like an HTTP "gateway
 server", with the application being an HTTP "origin server".  (See RFC
 2616, section 1.3, for the definition of these terms.)
 
-However, because Web3 servers and applications do not communicate via
-HTTP, what RFC 2616 calls "hop-by-hop" headers do not apply to Web3
-internal communications.  Web3 applications **must not** generate any
+However, because WSGI2 servers and applications do not communicate via
+HTTP, what RFC 2616 calls "hop-by-hop" headers do not apply to WSGI2
+internal communications.  WSGI2 applications **must not** generate any
 "hop-by-hop" headers [4]_, attempt to use HTTP features that would
 require them to generate such headers, or rely on the content of any
-incoming "hop-by-hop" headers in the ``environ`` dictionary.  Web3
+incoming "hop-by-hop" headers in the ``environ`` dictionary.  WSGI2
 servers **must** handle any supported inbound "hop-by-hop" headers on
 their own, such as by decoding any inbound ``Transfer-Encoding``,
 including chunked encoding if applicable.
@@ -1037,7 +1035,7 @@ Server Extension APIs
 Some server authors may wish to expose more advanced APIs, that
 application or framework authors can use for specialized purposes.
 For example, a gateway based on ``mod_python`` might wish to expose
-part of the Apache API as a Web3 extension.
+part of the Apache API as a WSGI2 extension.
 
 In the simplest case, this requires nothing more than defining an
 ``environ`` variable, such as ``mod_python.some_api``.  But, in many
@@ -1047,14 +1045,14 @@ are found in ``environ`` variables, might return different data if
 ``environ`` has been modified by middleware.
 
 In general, any extension API that duplicates, supplants, or bypasses
-some portion of Web3 functionality runs the risk of being incompatible
+some portion of WSGI2 functionality runs the risk of being incompatible
 with middleware components.  Server/gateway developers should *not*
 assume that nobody will use middleware, because some framework
 developers specifically organize their frameworks to function almost
 entirely as middleware of various kinds.
 
 So, to provide maximum compatibility, servers and gateways that
-provide extension APIs that replace some Web3 functionality, **must**
+provide extension APIs that replace some WSGI2 functionality, **must**
 design those APIs so that they are invoked using the portion of the
 API that they replace.  For example, an extension API to access HTTP
 request headers must require the application to pass in its current
@@ -1135,7 +1133,7 @@ bytes object), it may do so using the following algorithm::
 
     host = environ.get('HTTP_HOST')
 
-    scheme = environ['web3.url_scheme']
+    scheme = environ['wsgi.url_scheme']
     port = environ['SERVER_PORT']
     query = environ['QUERY_STRING']
 
@@ -1254,13 +1252,13 @@ a specification with reduced complexity by omitting specialized
 support for asynchronous applications.
 
 To provide backwards compatibility for older WSGI 1.0 applications, so
-that they may run on a Web3 stack, it is presumed that Web3 middleware
-will be created which can be used "in front" of existing WSGI 1.0
-applications, allowing those existing WSGI 1.0 applications to run
-under a Web3 stack.  This middleware will require, when under Python
-3, an equivalence to be drawn between Python 3 ``str`` types and the
-bytes values represented by the HTTP request and all the attendant
-encoding-guessing (or configuration) it implies.
+that they may run on a WSGI2 stack, it is presumed that WSGI2
+middleware will be created which can be used "in front" of existing
+WSGI 1.0 applications, allowing those existing WSGI 1.0 applications
+to run under a WSGI2 stack.  This middleware will require, when under
+Python 3, an equivalence to be drawn between Python 3 ``str`` types
+and the bytes values represented by the HTTP request and all the
+attendant encoding-guessing (or configuration) it implies.
 
 .. note::
 
@@ -1271,7 +1269,7 @@ encoding-guessing (or configuration) it implies.
    core and implemented.
 
 Conversely, it is presumed that WSGI 1.0 middleware will be created
-which will allow a Web3 application to run behind a WSGI 1.0 stack on
+which will allow a WSGI2 application to run behind a WSGI 1.0 stack on
 the Python 2 platform.
 
 
@@ -1362,7 +1360,7 @@ return values more pleasant; for example, analogues of the WSGI 1.0
 libraries named "WebOb" and "Werkzeug".  Such libraries will fill the
 gap between convenience and control, allowing the spec to remain
 simple and regular while still allowing casual authors a convenient
-way to create Web3 middleware and application components.  This seems
+way to create WSGI2 middleware and application components.  This seems
 to be a reasonable alternative to baking encoding policy into the
 protocol, because many such libraries can be created independently
 from the protocol, and application developers can choose the one that
@@ -1384,7 +1382,7 @@ Here are some alternatives to using all bytes:
   decided by their typical usages.
 
 
-Applications Should be Allowed to Read ``web3.input`` Past ``CONTENT_LENGTH``
+Applications Should be Allowed to Read ``wsgi.input`` Past ``CONTENT_LENGTH``
 -----------------------------------------------------------------------------
 
 At [6]_, Graham Dumpleton makes the assertion that ``wsgi.input``
@@ -1403,14 +1401,14 @@ instead."  This may be useful to support chunked encoding and input
 filters.
 
 
-``web3.input`` Unknown Length
+``wsgi.input`` Unknown Length
 -----------------------------
 
 There's no documented way to indicate that there is content in
-``environ['web3.input']``, but the content length is unknown.
+``environ['wsgi.input']``, but the content length is unknown.
 
 
-``read()`` of ``web3.input`` Should Support No-Size Calling Convention
+``read()`` of ``wsgi.input`` Should Support No-Size Calling Convention
 ----------------------------------------------------------------------
 
 At [6]_, Graham Dumpleton makes the assertion that the ``read()``
@@ -1455,7 +1453,7 @@ applications and servers (see PEP 333's "Middleware Handling of Block
 Boundaries").
 
 
-``web3.path_requoted``
+``wsgi.path_requoted``
 ----------------------
 
 This idea (although not its name) came from
@@ -1562,7 +1560,7 @@ When using chunked transfer encoding on request content, the RFCs
 allow there to be request trailers.  These are like request headers
 but come after the final null data chunk.  These trailers are only
 available when the chunked data stream is finite length and when it
-has all been read in.  Neither WSGI nor Web3 currently supports them.
+has all been read in.  Neither WSGI nor WSGI2 currently supports them.
 
 .. XXX (armin) yield from application iterator should be specify write
    plus flush by server.
