@@ -390,6 +390,61 @@ header exists and adds a comment to all html responses::
 
     app = proxy_and_timing_support(app)
 
+
+Filters
+-------
+
+A large amount of middleware only applies changes to the environment
+coming in from the server before reaching the application, or,
+conversely, only applies transformations to the data returned by
+the application.  Additionally, middleware, by wrapping applications
+and other middleware in a recursive structure, is less efficient than
+a "flat" model.  Filters fill the need for efficient ingress- or
+egress-only modifications.
+
+Such "filters" can perform such functions as:
+
+* Perform additional processing on the incoming request, such as
+  transforming HTTP GET arguments.
+
+* Perform content postprocessing, such as applying XSL stylesheets or
+  GZip compression.
+
+The filtering API **may** be implemented by WSGI2 servers, and
+filtering functionality can be added to non-supporting servers by
+utilizing a middleware layer which implements the filtering API.
+
+Specifying the filter lists for ingress and egress is left as an
+implementation detail for the server or middleware.
+
+Ingress filters **must** accept a single positional argument with the
+same API as an application, illustrated above.  Ingress filters may
+then modify the WSGI2 environment, and **must** return ``None``.
+
+Egress filters **must** accept three positional arguments conforming
+to the values returned by an application, illustrated above.  An
+egress filter **may** then modify or construct an entirely new
+response and **must** return a 3-tuple with the same API as an
+application, as illustrated above.
+
+Ingress and egress filters can be utilized by a light-weight
+middleware layer to perform the actual work, allowing both use as
+efficient ingress and/or egress filters **and** as middleware.  For
+example::
+
+   class CompressionMiddleware(object):
+      def __init__(self, app):
+         """Store the wrapped application and configure the egress
+         filter."""
+         self.app = app
+         self.egress = CompressionEgressFilter()
+         super(CompressionEgressFilter, self).__init__()
+      
+      def __call__(self, environ):
+         """Call the applicaiton, filtering the result."""
+         return self.egress(*self.app(environ))
+
+
 Specification Details
 =====================
 
@@ -454,72 +509,6 @@ methods.
 
 Finally, servers and gateways **must not** directly use any other
 attributes of the ``body`` iterable returned by the application.
-
-
-Filters
--------
-
-A large amount of middleware only applies changes to the environment
-coming in from the server before reaching the application, or,
-conversely, only applies transformations to the data returned by
-the application.  Additionally, middleware, by wrapping applications
-and other middleware in a recursive structure, is less efficient than
-a "flat" model.  Filters fill the need for efficient ingress- or
-egress-only modifications.
-
-Such "filters" can perform such functions as:
-
-* Perform additional processing on the incoming request, such as
-  transforming HTTP GET arguments.
-
-* Perform content postprocessing, such as applying XSL stylesheets or
-  GZip compression.
-
-The filtering API **may** be implemented by WSGI2 servers, and
-filtering functionality can be added to non-supporting servers by
-utilizing a middleware layer which implements the filtering API.
-
-Specifying the filter lists for ingress and egress is left as an
-implementation detail for the server or middleware.
-
-
-Ingress Filters
-===============
-
-Ingress filters **must** accept a single positional argument with the
-same API as an application, illustrated above.  Ingress filters may
-then modify the WSGI2 environment, and **must** return ``None``.
-
-
-Egress Filters
-==============
-
-Egress filters **must** accept three positional arguments conforming
-to the values returned by an application, illustrated above.  An
-egress filter **may** then modify or construct an entirely new
-response and **must** return a 3-tuple with the same API as an
-application, as illustrated above.
-
-
-Compatibility
-=============
-
-Ingress and egress filters can be utilized by a light-weight
-middleware layer to perform the actual work, allowing both use as
-efficient ingress and/or egress filters **and** as middleware.  For
-example::
-
-   class CompressionMiddleware(object):
-      def __init__(self, app):
-         """Store the wrapped application and configure the egress
-         filter."""
-         self.app = app
-         self.egress = CompressionEgressFilter()
-         super(CompressionEgressFilter, self).__init__()
-      
-      def __call__(self, environ):
-         """Call the applicaiton, filtering the result."""
-         return self.egress(*self.app(environ))
 
 
 ``environ`` Variables
