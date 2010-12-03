@@ -551,25 +551,23 @@ string.  Each value is a bytes instance.
    string" is a ``str`` type representing a set of bytes.
 
 ``REQUEST_METHOD``
-  The HTTP request method, such as ``"GET"`` or ``"POST"``.
+   The HTTP request method, such as ``"GET"`` or ``"POST"``.
 
 ``SCRIPT_NAME``
-
-  The initial portion of the request URL's "path" that corresponds to
-  the application object, so that the application knows its virtual
-  "location".  This may be the empty bytes instance if the application
-  corresponds to the "root" of the server.  SCRIPT_NAME will be a
-  bytes instance representing a sequence of URL-encoded segments, each
-  segment separated by the slash character (``/``).  Unlike CGI, it is
-  assumed that segment values containing URL-encoded characters will
-  *not* be unquoted: URL-quoted values such as ``%2F`` *will* remain
-  present in ``SCRIPT_NAME`` provided to a WSGI2 application.  If a
-  server must reconstruct ``SCRIPT_NAME`` to provide a quoted value,
-  it should do so as best it can and set the ``wsgi.path_requoted``
-  environment value to ``True``.
+   The initial portion of the request URL's "path" that corresponds to
+   the application object, so that the application knows its virtual
+   "location".  This may be the empty bytes instance if the application
+   corresponds to the "root" of the server.  SCRIPT_NAME will be a
+   bytes instance representing a sequence of URL-encoded segments, each
+   segment separated by the slash character (``/``).  Unlike CGI, it is
+   assumed that segment values containing URL-encoded characters will
+   *not* be unquoted: URL-quoted values such as ``%2F`` *will* remain
+   present in ``SCRIPT_NAME`` provided to a WSGI2 application.  If a
+   server must reconstruct ``SCRIPT_NAME`` to provide a quoted value,
+   it should do so as best it can and set the ``wsgi.path_requoted``
+   environment value to ``True``.
 
 ``PATH_INFO``
-
   The remainder of the request URL's "path", designating the virtual
   "location" of the request's target within the application.  This
   **may** be a bytes instance if the request URL targets the
