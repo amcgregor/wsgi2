@@ -525,7 +525,7 @@ If the ``body`` iterable returned by the application has a ``close()``
 method, the server or gateway **must** call that method upon
 completion of the current request, whether the request was completed
 normally, or terminated early due to an error.  This is to support
-resource release by the application amd is intended to complement PEP
+resource release by the application and is intended to complement PEP
 325's generator support, and other common iterables with ``close()``
 methods.
 
@@ -548,7 +548,7 @@ string.  Each value is a bytes instance.
    In Python 3.1+, a "native string" is a ``str`` type decoded using
    the ``surrogateescape`` error handler, as done by
    ``os.environ.__getitem__``.  In Python 2.6 and 2.7, a "native
-   string" is a ``str`` types representing a set of bytes.
+   string" is a ``str`` type representing a set of bytes.
 
 ``REQUEST_METHOD``
   The HTTP request method, such as ``"GET"`` or ``"POST"``.
