@@ -1,0 +1,233 @@
+|_>. PEP | 444 |
+|_>. Title | Python Web Server Gateway Interface v2.0 |
+|_/3^>. Authors | Alice Bevan-McGregor <"alice@gothcandy.com":mailto:> |
+| Chris McDonough <"chrism@plope.com":mailto:chrism@plope.com> |
+| Armin Ronacher <"armin.ronacher@active-4.com":mailto:armin.ronacher@active-4.com> |
+|_>. Discussions-To | Python Web-SIG <"web-sig@python.org":mailto:web-sig@python.org> |
+|_>. Status | Draft |
+|_>. Type | Informational |
+|_>. Content-Type | text/x-textile |
+|_>. Created | 19-Jul-2010 |
+|_>. Last-Modified | 15-Dec-2010 |
+
+
+h1. Abstract
+
+bq. *Status:* Final.
+
+This document specifies a proposed second-generation standard interface between web servers and Python 2.6+ and 3.1+ web applications or frameworks.
+
+
+h1. Rationale and Goals
+
+bq. *Status:* Final.
+
+This protocol specification is influenced heavily by the Web Services Gateway Interface (WSGI) 1.0 standard described in PEP 333[1], the extensions proposed in PEP 3333[2], and community discussion.  The high-level rationale for having any standard that allows Python-based web servers and applications to interoperate is outlined in PEP 333.  This document has been written to clarify potentially ambiguous language from PEP 333, define Python 3.X compatibility, and update it with improved backwards-incompatible methodologies.
+
+Applications and servers which are written to this specification are meant to work properly under Python versions greater than or equal to 2.6, less than 3.0, and greater than or equal to 3.1. Neither an application nor a server that implements the WSGI2 specification can be easily written which will work under Python 2 versions earlier than 2.6 nor Python 3 versions earlier than 3.1.
+
+*Note:* Python 2.6 is the first Python version that supported an alias for @bytes@ and the @b"foo"@ literal syntax. This is why it is the minimum version supported by WSGI2. While developers may attempt to provide solutions for earlier versions, such compatibility is not defined herein.
+
+
+
+h1. Definitions
+
+bq. *Status:* Final, open to additions.
+
+The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in RFC 2119[3].
+
+This document utilizes several terms which need to be clearly defined:
+
+# *Byte string:* The data format returned by socket read operations on a given implementation.  In both Python 2.X and 3.X CPython implementations this is a literal _byte string_.  For implementations that do not have the concept of a _byte string_, this is a @ISO-8859-1@ _unicode string_ with allowable characters in the range @\u0000@ through @\u00FF@ inclusive.
+# *Unicode string:* A series of Unicode characters.  (Possibly variable length per character.)
+# *Native string:* The primary string type for a given implementation. For Python 2.X as implemented by CPython, this is a _byte string_. For Python 3.X, this is a _unicode string_.
+
+
+
+h1. Specification Overview
+
+bq. *Status:* Final.
+
+WSGI defines a conversation held between two parties, optionally with intermediaries that understand both sides of the conversation. This conversation is between the "server" (or "gateway", hereafter referred to simply as server) and the "application" (or "framework", hereafter referred to simply as application) with "middleware" between them. A WSGI2 server prepares an environment based on a request and invokes a callable object (the application) using a defined API; the result of the invocation is then used as the response.
+
+The specifics of how the application callable is provided to the server is left as an implementation detail of the server and is outside the scope of this document. It is assumed that some servers will require an application deployer to write a short script to create an instance of the server, and then supply it with the application object. Other servers may use configuration files or other mechanisms to specify where an application object should be imported from or otherwise obtained.
+
+In addition to "pure" servers and applications, it is also possible to create "middleware" components that implement both sides of this specification. Such components act as an application to their caller, as a server to the wrapped application, and can be used to provide extended APIs, content transformation, navigation, and other useful functions. This is similar to the decorator functionality in Python, though middleware must conform to the protocol defined in this document.
+
+A third form of extension, filters, are described in this document. "Filters" are similar to middleware, though instead of wrapping an application in multiple layers, recursively descending from server through to application and returning in the opposite direction, filters provide a mechanism to alter the request environment before being passed to the application/middleware stack, and a mechanism for altering the response returned by the application/middleware stack. Filters should not be constructed that are co-dependant: if a filter needs to alter the request _and_ response, it should be implemented as middleware. Filter support is optional at the server level.
+
+Throughout this specification, we will use the terms "application callable" and "application object" to mean "a function, a method, or an instance with a @__call__@ method". It is up to the application implementor to choose the appropriate implementation technique for their needs. Conversely, a server that is invoking a callable must not have any dependency on what kind of callable was provided to it. Application callables are only to be called, not introspected.
+
+
+h2. Application / Framework API
+
+bq. *Status:* Final draft.
+
+An application is any function, method, or instance with a @__call__@ method. Applications must be able to be invoked more than once, as virtually all servers (other than CGI) will make such repeated requests. If this cannot be guaranteed by the implementation of the actual application, it has to be wrapped in a function that creates a new instance on each call.
+
+*Note:* Although we refer to it as an "application", this should not be construed to mean that application developers will use WSGI2 as a web programming API. It is assumed that application developers will continue to use existing, high-level framework services to develop their applications. WSGI2 is a tool for framework and server developers, and is not intended to directly support application developers.
+
+A WSGI2 application must accept a single positional argument which must be an instance of a base Python dictionary containing what is referred to as the WSGI environment where:
+
+# All keys in the environment dictionary must be native strings.
+# The value matching the @'wsgi.url_scheme'@ key must be a native string.
+# For implementations where the native string is unicode, all CGI keys, and CGI values other than @REQUEST_URI@, @SCRIPT_NAME@, @PATH_INFO@, and @QUERY_STRING@, must be encoded using ISO-8859-1.
+# The value matching the @'wsgi.input'@ key must produce byte strings.
+
+The return value of the application must be a 3-tuple of @(status, headers, body)@ where:
+
+# @status@ must contain the HTTP status code and reason phrase of the response. The status code and reason must be present, in that order, separated by a single space.  (See RFC 2616, Section 6.1.1 for more information.)
+# @headers@ must be a standard Python list containing 2-tuples of @(name, value)@ pairs representing the HTTP headers of the response. Each header name must represent a valid HTTP header field name (as defined by RFC 2616, Section 4.2) without trailing colon or other punctuation.
+# @body@ must be an iterable representing the HTTP response body.
+# @status@ and the name of each header present in @headers@ must not have leading or trailing whitespace.
+# @status@, and the contents of @headers@ (both name and value) must not contain control characters, including carriage returns or linefeeds, either embedded or at the end.
+# @status@, @headers@, and @body@ data may be returned as native strings, although byte strings are recommended. If native strings are unicode the server must encode the values using ISO-8859-1.
+# The body to be written must be in a format suitable for the client.
+
+Applications and middleware must not alter HTTP/1.1 "hop-by-hop" features or headers, any equivalent features in HTTP/1.0, or any headers that would affect the persistence of the client's connection to the web server. Applications and middleware may interrogate the environment for their presence and value.  These features are the exclusive province of the actual web server, and a server should consider it a fatal error for an application to attempt sending them, and raise an error if they are supplied as return values from an application in the headers structure. (For more specifics on "hop-by-hop" features and headers, please see the Other HTTP Features section below.)
+
+
+h2. Server / Gateway API
+
+bq. *Status:* Draft.<br>*Note:* Needs clean-up and reorganization to conform to the style of previous sections.
+
+The server invokes the application callable once for each request it receives from an HTTP client that is directed at the application.  The server must call the application with a single positional value representing the request environment, described in detail in the previous section.
+
+The server must ensure that correct response headers are sent to the client: if the application omits a header required by the HTTP standard (or other relevant specifications that are in effect), the server must add it. For example, the @Date@ and @Server@ headers would normally be supplied by the server. The server must not override values with the same name if they are emitted by the application.
+
+HTTP header names are case-insensitive, so be sure to take that into consideration when examining application-supplied headers.
+
+If the application response tuple contains unicode data (via unicode native strings, etc.) the server must encode the unicode data using ISO-8859-1.
+
+The server must ensure that line endings within the body are not altered and must transmit body chunks to the client in an unbuffered fashion, completing the transmission of each set of bytes before requesting another one. (Applications should perform their own buffering.) The server may apply HTTP transfer encodings or perform other transformations for the purpose of implementing HTTP features such as byte-range transmission or chunked transfer. If the body returned by the application has a close() method, the server must call that method upon completion of the current request, whether the request was completed normally or terminated early due to an error. This is to support resource release by the application and is intended to complement PEP 325's generator support, and other common iterables with close() methods.
+
+Finally, servers must not directly use any other attributes of the body iterable returned by the application.
+
+
+h3. Server Extension APIs
+
+bq. *Status:* Final draft.
+
+Some server authors may wish to expose more advanced APIs that application authors can use for specialized purposes. For example, a server based on mod_python might wish to expose part of the Apache API as a WSGI2 extension.
+
+In the simplest case, this requires nothing more than defining an environ variable, such as @mod_python.some_api@. But, in many cases, the possible presence of middleware can make this difficult. For example, an API that offers access to the same HTTP headers that are found in environ variables might return different data if environ has been modified by middleware.
+
+In general, any extension API that duplicates, supplants, or bypasses some portion of WSGI2 functionality runs the risk of being incompatible with middleware components. Server developers should not assume that nobody will use middleware, because some framework developers specifically organize their frameworks to function almost entirely as middleware of various kinds.
+
+So, to provide maximum compatibility, servers that provide extension APIs that replace some WSGI2 functionality, must design those APIs so that they are invoked using the portion of the API that they replace. For example, an extension API to access HTTP request headers must require the application to pass in its current environ, so that the server may verify that HTTP headers accessible via the API have not been altered by middleware. If the extension API cannot guarantee that it will always agree with environ about the contents of HTTP headers, it must refuse service to the application, e.g. by raising an error, returning None instead of a header collection, or whatever is appropriate to the API.
+
+These guidelines also apply to middleware that adds information such as parsed cookies, form variables, sessions, and the like to environ. Specifically, such middleware should provide these features as functions which operate on environ, rather than simply stuffing values into environ. This helps ensure that information is calculated from environ after any middleware has done any URL rewrites or other environ modifications.
+
+It is very important that these "safe extension" rules be followed by both server and middleware developers, in order to avoid a future in which middleware developers are forced to delete any and all extension APIs from environ to ensure that their mediation isn't being bypassed by applications using those extensions!
+
+
+h2. Middleware API
+
+bq. *Status:* Draft.<br>*Note:* Needs elaboration.
+
+Middleware callables play the role of a server with respect to the application they wrap, while also acting as an application with respect to the server they are called by.  Middleware components can perform such functions as:
+
+* Routing a request to different application objects based on the target URL, after rewriting the environ accordingly.
+* Allowing multiple applications to run side-by-side in the same process.
+* Load balancing and remote processing, by forwarding requests and responses over a network.
+
+The presence of middleware in general is transparent to both the server and the application sides of the interface, and should require no special support. A user who desires to incorporate middleware into an application simply provides the middleware component to the server, as if it were an application, and configures the middleware component to invoke the application, as if the middleware component were a server. Of course, the "application" that the middleware wraps may in fact be another middleware component wrapping another application, and so on, creating what is referred to as a "middleware stack".
+
+
+h2. Filter API
+
+bq. *Status:* Draft.<br>*Note:* Needs elaboration.
+
+A large amount of middleware only applies changes to the environment coming in from the server before reaching the application, or, conversely, only applies transformations to the data returned by the application. Additionally, middleware, by wrapping applications and other middleware in a recursive structure, is less efficient and harder to debug than a "flat" model. Filters fill the need for efficient ingress- or egress-only modifications.
+
+Such "filters" can perform such functions as:
+
+* Perform additional processing on the incoming request, such as transforming HTTP GET arguments.
+* Perform content post-processing, such as applying XSL stylesheets or GZip compression.
+
+The filtering API may be implemented by WSGI2 servers, and filtering functionality can be added to non-supporting servers by utilizing a middleware layer which implements the filtering API.
+
+
+h2. Asynchronous Processing
+
+bq. *Status:* TBD.<br>*Note:* See the @futures@ module.
+
+
+
+h1. Implementation Details
+
+bq. *Status:* TBD.
+
+
+h2. The WSGI Environment
+
+bq. *Status:* TBD.
+
+
+h2. Input Stream
+
+bq. *Status:* TBD.
+
+
+h2. Error Stream
+
+bq. *Status:* TBD.
+
+
+h2. HTTP/1.1
+
+bq. *Status:* TBD.
+
+
+
+h1. Python Cross-Version Compatibility
+
+bq. *Status:* TBD.
+
+
+
+h1. Examples
+
+bq. *Status:* TBD.
+
+
+h2. Functional Application Example
+
+bq. *Status:* TBD.<br>*Note:* Demonstrate a function-based "hello world" WSGI application.
+
+
+h2. Class Instance Application Example
+
+bq. *Status:* TBD.<br>*Note:* Demonstrate a class instance-based "hello world" WSGI application.
+
+
+h2. Middleware Example
+
+bq. *Status:* TBD.<br>*Note:* Demonstrate simple (and robust) benchmarking middleware.
+
+
+h2. Filtering Middleware Example
+
+bq. *Status:* TBD.<br>*Note:* Demonstrate the filtering API as middleware.
+
+
+h2. CGI Server Example
+
+bq. *Status:* TBD.<br>*Note:* Demonstrate a basic CGI server that conforms to this standard.
+
+
+
+h1. References
+
+bq. *Status:* Draft.<br>*Note:* Needs more references, esp. to community discussion.
+
+fn1. PEP 333: Python Web Services Gateway Interface v1.0 ("http://www.python.org/dev/peps/pep-0333/":http://www.python.org/dev/peps/pep-0333/)
+
+fn2. PEP 3333: Python Web Services Gateway Interface v1.0.1 ("http://www.python.org/dev/peps/pep-3333/":http://www.python.org/dev/peps/pep-3333/)
+
+fn3. RFC 2119: Key words for use in RFCs to Indicate Requirement Levels ("http://www.rfc-editor.org/rfc/rfc2119.txt":http://www.rfc-editor.org/rfc/rfc2119.txt)
+
+
+h1. Copyright
+
+This document has been placed in the public domain.
