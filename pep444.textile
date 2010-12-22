@@ -76,7 +76,7 @@ The return value of the application must be a 3-tuple of @(status, headers, body
 # @body@ must be an iterable representing the HTTP response body.
 # @status@ and the name of each header present in @headers@ must not have leading or trailing whitespace.
 # @status@, and the contents of @headers@ (both name and value) must not contain control characters including carriage returns or linefeeds.
-# @status@, @headers@, and @body@ data should be returned as byte strings, though for implementations where native strings are unicode, native strings may be returned.  The server must encode unicode values using ISO-8859-1.
+# @status@, @headers@, and the chunks yielded by the @body@ iterator should be returned as byte strings, though for implementations where native strings are unicode, native strings may be returned.  The server must encode unicode values using ISO-8859-1.
 # The amount of data yielded by the body iterable must not exceed the length specified by the @Content-Length@ response header, if defined.
 
 Applications and middleware must not alter HTTP/1.1 "hop-by-hop" features or headers, any equivalent features in HTTP/1.0, or any headers that would affect the persistence of the client's connection to the web server. Applications and middleware may interrogate the environment for their presence and value. These features are the exclusive province of the actual web server, and a server should consider it a fatal error for an application to attempt sending them, and raise an error if they are supplied as return values from an application in the headers structure. (For more specifics on "hop-by-hop" features and headers, please see the Other HTTP Features section below.)
