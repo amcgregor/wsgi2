@@ -34,7 +34,7 @@ h1. Definitions
 
 bq. *Status:* Final, open to additions.
 
-The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in RFC 2119[3].
+The key words *must*, *must not*, *required*, *shall*, *shall not*, *should*, *should not*, *recommended*, *may*, and *optional* in this document are to be interpreted as described in RFC 2119[3].
 
 This document utilizes several terms which need to be clearly defined:
 
@@ -67,12 +67,7 @@ An application is any function, method, or instance with a @__call__@ method. Ap
 
 *Note:* Although we refer to it as an "application", this should not be construed to mean that application developers will use WSGI2 as a web programming API. It is assumed that application developers will continue to use existing, high-level framework services to develop their applications. WSGI2 is a tool for framework and server developers, and is not intended to directly support application developers.
 
-A WSGI2 application must accept a single positional argument which must be an instance of a base Python dictionary containing what is referred to as the WSGI environment where:
-
-# All keys in the environment dictionary must be native strings.
-# The value matching the @'wsgi.url_scheme'@ key must be a native string.
-# For implementations where the native string is unicode, all CGI keys, and CGI values other than @REQUEST_URI@, @SCRIPT_NAME@, @PATH_INFO@, and @QUERY_STRING@, must be encoded using ISO-8859-1.
-# The value matching the @'wsgi.input'@ key must produce byte strings.
+A WSGI2 application must accept a single positional argument which must be an instance of a base Python dictionary containing what is referred to as the WSGI environment.  The contents of this dictionary are fully described in the "WSGI Environment":#wsgi-environment section.
 
 The return value of the application must be a 3-tuple of @(status, headers, body)@ where:
 
@@ -80,28 +75,33 @@ The return value of the application must be a 3-tuple of @(status, headers, body
 # @headers@ must be a standard Python list containing 2-tuples of @(name, value)@ pairs representing the HTTP headers of the response. Each header name must represent a valid HTTP header field name (as defined by RFC 2616, Section 4.2) without trailing colon or other punctuation.
 # @body@ must be an iterable representing the HTTP response body.
 # @status@ and the name of each header present in @headers@ must not have leading or trailing whitespace.
-# @status@, and the contents of @headers@ (both name and value) must not contain control characters, including carriage returns or linefeeds, either embedded or at the end.
-# @status@, @headers@, and @body@ data may be returned as native strings, although byte strings are recommended. If native strings are unicode the server must encode the values using ISO-8859-1.
-# The body to be written must be in a format suitable for the client.
+# @status@, and the contents of @headers@ (both name and value) must not contain control characters including carriage returns or linefeeds.
+# @status@, @headers@, and @body@ data should be returned as byte strings, though for implementations where native strings are unicode, native strings may be returned.  The server must encode unicode values using ISO-8859-1.
+# The amount of data yielded by the body iterable must not exceed the length specified by the @Content-Length@ response header, if defined.
 
-Applications and middleware must not alter HTTP/1.1 "hop-by-hop" features or headers, any equivalent features in HTTP/1.0, or any headers that would affect the persistence of the client's connection to the web server. Applications and middleware may interrogate the environment for their presence and value.  These features are the exclusive province of the actual web server, and a server should consider it a fatal error for an application to attempt sending them, and raise an error if they are supplied as return values from an application in the headers structure. (For more specifics on "hop-by-hop" features and headers, please see the Other HTTP Features section below.)
+Applications and middleware must not alter HTTP/1.1 "hop-by-hop" features or headers, any equivalent features in HTTP/1.0, or any headers that would affect the persistence of the client's connection to the web server. Applications and middleware may interrogate the environment for their presence and value. These features are the exclusive province of the actual web server, and a server should consider it a fatal error for an application to attempt sending them, and raise an error if they are supplied as return values from an application in the headers structure. (For more specifics on "hop-by-hop" features and headers, please see the Other HTTP Features section below.)
 
 
 h2. Server / Gateway API
 
-bq. *Status:* Draft.<br>*Note:* Needs clean-up and reorganization to conform to the style of previous sections.
+bq. *Status:* Final draft.
 
-The server invokes the application callable once for each request it receives from an HTTP client that is directed at the application.  The server must call the application with a single positional value representing the request environment, described in detail in the previous section.
+A WSGI server must:
 
-The server must ensure that correct response headers are sent to the client: if the application omits a header required by the HTTP standard (or other relevant specifications that are in effect), the server must add it. For example, the @Date@ and @Server@ headers would normally be supplied by the server. The server must not override values with the same name if they are emitted by the application.
+# Invoke the application callable once for each request it receives from an HTTP client that is directed at the application.
+# Pass a single positional value to the application callable representing the request environment, described in detail in the "WSGI Environment":#wsgi-environment section.
+# Ensure that correct response headers are sent to the client. If the application omits a header required by the HTTP standard (or other relevant specifications that are in effect), the server must add it. E.g. the @Date@ and @Server@ headers.
+## The server must not override values with the same name if they are emitted by the application.
+# Encode unicode data (where returned by the application) using @ISO-8859-1@.
+# Ensure that line endings within the body are not altered.
+# Transmit body chunks to the client in an unbuffered fashion, completing the transmission of each set of bytes before requesting another one. (Applications should perform their own buffering.)
+# Call the @close()@ method of the body returned by the application, if present, upon completion of the current request. This should be called regardless of the termination status of the request. This is to support resource release by the application and is intended to complement PEP 325's generator support, and other common iterables with close() methods.
 
-HTTP header names are case-insensitive, so be sure to take that into consideration when examining application-supplied headers.
+Additionally,
 
-If the application response tuple contains unicode data (via unicode native strings, etc.) the server must encode the unicode data using ISO-8859-1.
-
-The server must ensure that line endings within the body are not altered and must transmit body chunks to the client in an unbuffered fashion, completing the transmission of each set of bytes before requesting another one. (Applications should perform their own buffering.) The server may apply HTTP transfer encodings or perform other transformations for the purpose of implementing HTTP features such as byte-range transmission or chunked transfer. If the body returned by the application has a close() method, the server must call that method upon completion of the current request, whether the request was completed normally or terminated early due to an error. This is to support resource release by the application and is intended to complement PEP 325's generator support, and other common iterables with close() methods.
-
-Finally, servers must not directly use any other attributes of the body iterable returned by the application.
+# HTTP header names are case-insensitive, so be sure to take that into consideration when examining application-supplied headers.
+# The server may apply HTTP transfer encodings or perform other transformations for the purpose of implementing HTTP features such as byte-range transmission or chunked transfer.
+# Servers must not directly use any other attributes of the body iterable returned by the application.
 
 
 h3. Server Extension APIs
@@ -150,7 +150,7 @@ The filtering API may be implemented by WSGI2 servers, and filtering functionali
 
 h2. Asynchronous Processing
 
-bq. *Status:* TBD.<br>*Note:* See the @futures@ module.
+bq. *Status:* TBD.<br>*Note:* See the @futures@ PEP.
 
 
 
@@ -161,23 +161,92 @@ bq. *Status:* TBD.
 
 h2. The WSGI Environment
 
-bq. *Status:* TBD.
+bq. *Status:* Draft.
+
+# All keys in the environment dictionary must be native strings.
+# The value matching the @'wsgi.url_scheme'@ key must be a native string.
+# For implementations where the native string is unicode, all CGI keys, and all CGI values other than @REQUEST_URI@, @SCRIPT_NAME@, @PATH_INFO@, and @QUERY_STRING@, must be encoded using ISO-8859-1.
+# The value for the @REQUEST_URI@ key must be a byte string.
+# The values for the @SCRIPT_NAME@, @PATH_INFO@, and @QUERY_STRING@ keys must be unicode strings. The encoding used must be stored in @wsgi.uri_encoding@ and default to UTF-8.  The application developer may provide a different default.  If conversion failed, ISO-8859-1 must be used.
+# The value for the @wsgi.uri_encoding@ key must be a native string.
+# The value matching the @wsgi.input@ key must produce byte strings.
+# The @read()@ and @readline()@ methods of @wsgi.input@ may optionally take a size hint. If no hint is given @read()@ reads until end of stream.
+# Read operations across @wsgi.input@ must return an empty string as an end of stream marker.
 
 
 h2. Input Stream
 
 bq. *Status:* TBD.
 
+The input stream (@wsgi.input@) provided by the server must support the following methods:
+
+|_. Method|_. Notes|
+|@read(size)@|1, 4|
+|@readline([size])@|1, 2, 4|
+|@readlines([size])@|1, 3, 4|
+|@__iter__()@|4|
+
+The semantics of each method are as documented in the Python Library Reference, except for these notes as listed in the table above:
+
+# The server is not required to read past the client's specified Content-Length, and is allowed to simulate an end-of-file condition if the application attempts to read past that point. The application should not attempt to read more data than is specified by the CONTENT_LENGTH variable.
+# The implementation must support the optional size argument to readline().
+# The application is free to not supply a size argument to readlines(), and the server or gateway is free to ignore the value of any supplied size argument.
+# The read, readline and __iter__ methods must return a bytes instance. The readlines method must return a sequence which contains instances of bytes.
+
+The methods listed in the table above must be supported by all servers conforming to this specification. Applications conforming to this specification must not use any other methods or attributes of the input object. In particular, applications must not attempt to close this stream, even if it possesses a close() method.
+
+The input stream should silently ignore attempts to read more than the content length of the request. If no content length is specified the stream must be a dummy stream that does not return anything.
+
 
 h2. Error Stream
 
 bq. *Status:* TBD.
 
+The error stream (@wsgi.errors@) provided by the server must support the following methods:
 
-h2. HTTP/1.1
+|_. Method|_. Notes|
+|@flush()@|1|
+|@write(str)@|2|
+|@writelines(seq)@|2|
 
-bq. *Status:* TBD.
+The semantics of each method are as documented in the Python Library Reference, except for these notes as listed in the table above:
 
+# Since the errors stream may not be rewound, servers and gateways are free to forward write operations immediately, without buffering. In this case, the flush() method may be a no-op. Portable applications, however, cannot assume that output is unbuffered or that flush() is a no-op. They must call flush() if they need to ensure that output has in fact been written. (For example, to minimize intermingling of data from multiple processes writing to the same error log.)
+# The write() method must accept a string argument, but needn't necessarily accept a bytes argument. The writelines() method must accept a sequence argument that consists entirely of strings, but needn't necessarily accept any bytes instance as a member of the sequence.
+
+The methods listed in the table above must be supported by all servers conforming to this specification. Applications conforming to this specification must not use any other methods or attributes of the errors object. In particular, applications must not attempt to close this stream, even if it possesses a close() method.
+
+
+h2. HTTP Features
+
+bq. *Status:* Draft.<br>*Note:* The byte-range text should likely be removed and made entirely the domain of the application.
+
+In general, servers should "play dumb" and allow the application complete control over its output. They should only make changes that do not alter the effective semantics of the application's response. It is always possible for the application developer to add middleware components to supply additional features, so server developers should be conservative in their implementation. In a sense, a server should consider itself to be like an HTTP "gateway server", with the application being an HTTP "origin server". (See RFC 2616, section 1.3, for the definition of these terms.)
+
+However, because WSGI2 servers and applications do not communicate via HTTP, what RFC 2616 calls "hop-by-hop" headers do not apply to WSGI2 internal communications. WSGI2 applications must not generate any "hop-by-hop" headers [4], attempt to use HTTP features that would require them to generate such headers, or rely on the content of any incoming "hop-by-hop" headers in the environ dictionary. WSGI2 servers must handle any supported inbound "hop-by-hop" headers on their own, such as by decoding any inbound Transfer-Encoding, including chunked encoding if applicable.
+
+Applying these principles to a variety of HTTP features, it should be clear that a server may handle cache validation via the @If-None-Match@ and @If-Modified-Since@ request headers and the @Last-Modified@ and @ETag@ response headers. However, it is not required to do this, and the application should perform its own cache validation if it wants to support that feature, since the server/gateway is not required to do such validation.
+
+Similarly, a server may re-encode or transport-encode an application's response, but the application should use a suitable content encoding on its own and must not apply a transport encoding to its response body. A server may transmit byte ranges of the application's response if requested by the client and the application doesn't natively support byte ranges. Again, however, the application should perform this function on its own if desired.
+
+Note that these restrictions on applications do not necessarily mean that every application must re-implement every HTTP feature; many HTTP features can be partially or fully implemented by middleware components, thus freeing both server and application authors from implementing the same features over and over again.
+
+
+h3. HTTP 1.1
+
+Servers that implement HTTP 1.1 must:
+
+# Provide transparent support for HTTP 1.1 Expect/Continue.  This can be accomplished in one of two ways:
+## Respond to requests containing an @"Expect: 100-continue"@ request with an immediate @"100 Continue"@ response, and proceed normally.
+## Proceed with the request normally, but provide the application with a @wsgi.input@ stream that will send the @"100 Continue"@ response if/when the application first attempts to read from the input stream. The read request must then remain blocked until the client responds.
+# Provide transparent support for chunked transfer encoding of request bodies.
+# Provide transparent support for chunked transfer encoding of response bodies if:
+## The @Content-Length@ header is missing from the response, or;
+## The @Transfer-Encoding@ response header is set to @"chunked"@, even if a @Content-Length@ header is provided.
+
+Note that these behavior restrictions do not apply for HTTP 1.0 requests or for requests that are not directed to an application object. Not defining a @Content-Length@ for responses to HTTP 1.0 requests must still be treated as an error condition by the server, for example.
+
+For more information on HTTP 1.1 Expect/Continue, see RFC 2616, sections 8.2.3 and 10.1.1.  For more information on chunked transfer encoding, see RFC 2616, section 3.6.1.
 
 
 h1. Python Cross-Version Compatibility
@@ -226,6 +295,8 @@ fn1. PEP 333: Python Web Services Gateway Interface v1.0 ("http://www.python.org
 fn2. PEP 3333: Python Web Services Gateway Interface v1.0.1 ("http://www.python.org/dev/peps/pep-3333/":http://www.python.org/dev/peps/pep-3333/)
 
 fn3. RFC 2119: Key words for use in RFCs to Indicate Requirement Levels ("http://www.rfc-editor.org/rfc/rfc2119.txt":http://www.rfc-editor.org/rfc/rfc2119.txt)
+
+fn4. "End-to-end and Hop-by-hop Headers" -- HTTP/1.1, Section 13.5.1 ("http://www.w3.org/Protocols/rfc2616/rfc2616-sec13.html#sec13.5.1":http://www.w3.org/Protocols/rfc2616/rfc2616-sec13.html#sec13.5.1)
 
 
 h1. Copyright
