@@ -39,7 +39,7 @@ The key words *must*, *must not*, *required*, *shall*, *shall not*, *should*, *s
 This document utilizes several terms which need to be clearly defined:
 
 # *Byte string:* The data format returned by socket read operations on a given implementation.  In both Python 2.X and 3.X CPython implementations this is a literal _byte string_.  For implementations that do not have the concept of a _byte string_, this is a @ISO-8859-1@ _unicode string_ with allowable characters in the range @\u0000@ through @\u00FF@ inclusive.
-# *Unicode string:* A series of Unicode characters.  (Possibly variable length per character.)
+# *Unicode string:* A series of Unicode characters.
 # *Native string:* The primary string type for a given implementation. For Python 2.X as implemented by CPython, this is a _byte string_. For Python 3.X, this is a _unicode string_.
 
 
