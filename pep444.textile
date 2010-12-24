@@ -15,7 +15,7 @@ h1. Abstract
 
 bq. *Status:* Final.
 
-This document specifies a proposed second-generation standard interface between web servers and Python 2.6+ and 3.1+ web applications or frameworks.
+This document specifies a proposed second-generation standard interface between web servers and Python 2.6+ and 3.1+ applications.
 
 
 h1. Rationale and Goals
