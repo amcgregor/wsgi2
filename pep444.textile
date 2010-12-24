@@ -266,7 +266,8 @@ The error stream (@wsgi.errors@) provided by the server must support the followi
 The semantics of each method are as documented in the Python Library Reference, except for these notes as listed in the table above:
 
 # Since the errors stream may not be rewound, servers and gateways are free to forward write operations immediately, without buffering. In this case, the flush() method may be a no-op. Portable applications, however, cannot assume that output is unbuffered or that flush() is a no-op. They must call flush() if they need to ensure that output has in fact been written. (For example, to minimize intermingling of data from multiple processes writing to the same error log.)
-# The write() method must accept a string argument, but needn't necessarily accept a bytes argument. The writelines() method must accept a sequence argument that consists entirely of strings, but needn't necessarily accept any bytes instance as a member of the sequence.
+# The write() method must accept a native string argument.
+# The writelines() method must accept a sequence argument that consists entirely of native strings.
 
 The methods listed in the table above must be supported by all servers conforming to this specification. Applications conforming to this specification must not use any other methods or attributes of the errors object. In particular, applications must not attempt to close this stream, even if it possesses a close() method.
 
