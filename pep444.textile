@@ -37,6 +37,7 @@ This document utilizes several terms which need to be clearly defined:
 # *Byte string:* The data format returned by socket read operations on a given implementation. In both Python 2.X and 3.X CPython implementations this is a literal _byte string_. For implementations that do not have the concept of a _byte string_, this is a @ISO-8859-1@ _unicode string_ with allowable characters in the range @\u0000@ through @\u00FF@ inclusive.
 # *Unicode string:* A series of Unicode characters.
 # *Native string:* The primary string type for a given implementation. For Python 2.X as implemented by CPython, this is a _byte string_. For Python 3.X, this is a _unicode string_.
+# *Application callable* or *application object*: Interchangeable terms representing "a function, a method, or an instance with a @__call__@ method".
 
 
 
@@ -46,11 +47,11 @@ WSGI defines a conversation held between two parties, optionally with intermedia
 
 The specifics of how the application callable is provided to the server is left as an implementation detail of the server and is outside the scope of this document. It is assumed that some servers will require an application deployer to write a short script to create an instance of the server, and then supply it with the application object. Other servers may use configuration files or other mechanisms to specify where an application object should be imported from or otherwise obtained.
 
-In addition to "pure" servers and applications, it is also possible to create "middleware" components that implement both sides of this specification. Such components act as an application to their caller, as a server to the wrapped application. These can be used to provide extended APIs, content transformation, navigation, and other useful functions. This is similar to the decorator functionality in Python, though middleware must conform to the protocol defined in this document.
+In addition to "pure" servers and applications, it is also possible to create "middleware" components that implement both sides of this specification. Such components act as an application to their caller and as a server to the wrapped application. These can be used to provide extended APIs, content transformation, navigation, and other useful functions. This is similar to the decorator functionality in Python, though middleware must conform to the protocol defined in this document.
 
-A third form of extension, filters, are described in this document. "Filters" are similar to middleware, though instead of wrapping an application in multiple layers, recursively descending from server through to application and returning in the opposite direction, filters provide a mechanism to alter the request environment before being passed to the application/middleware stack, and a mechanism for altering the response returned by the application/middleware stack. Filters should not be constructed that are co-dependant: if a filter needs to alter the request _and_ response, it should be implemented as middleware. Filter support is optional at the server level.
+A third form of extension, filters, are described in this document. Filters are similar to middleware, though instead of wrapping an application in multiple layers (recursively descending from server through to application and returning in the opposite direction) filters provide a mechanism to alter the request environment before being passed to the application/middleware stack and a mechanism for altering the response returned by the application/middleware stack. Filters should not be constructed that are co-dependant: if a filter needs to alter the request _and_ response, it should be implemented as middleware.
 
-Throughout this specification, we will use the terms "application callable" and "application object" to mean "a function, a method, or an instance with a @__call__@ method". It is up to the application implementor to choose the appropriate implementation technique for their needs. Conversely, a server that is invoking a callable must not have any dependency on what kind of callable was provided to it. Application callables are only to be called, not introspected.
+It is up to the application implementor to choose the appropriate implementation technique for their needs. Conversely, a server that is invoking a callable must not have any dependency on what kind of callable was provided to it. Application callables are only to be called, not introspected.
 
 
 h2. Application / Framework API
