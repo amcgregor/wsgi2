@@ -53,29 +53,27 @@ A third form of extension, filters, are described in this document. Filters are 
 
 It is up to the application implementor to choose the appropriate implementation technique for their needs. Conversely, a server that is invoking a callable must not have any dependency on what kind of callable was provided to it. Application callables are only to be called, not introspected.
 
+*Note:* Although we refer to it as an "application", this should not be construed to mean that application developers will use WSGI2 as a web programming API. It is assumed that application developers will continue to use existing, high-level framework services to develop their applications. WSGI2 is a tool for framework and server developers, and is not intended to directly support application developers.
+
+
 
 h2. Application / Framework API
 
-bq. *Status:* Final draft.
+An application is any function, method, or instance with a @__call__@ method. Applications must:
 
-An application is any function, method, or instance with a @__call__@ method. Applications must be able to be invoked more than once, as virtually all servers (other than CGI) will make such repeated requests. If this cannot be guaranteed by the implementation of the actual application, it has to be wrapped in a function that creates a new instance on each call.
+# Be able to be invoked more than once. If this can not be guaranteed by the application implementation, it must be wrapped in a function that creates a new instance on each call.
+# Accept a single positional argument which must be an instance of a base Python dictionary containing what is referred to as the WSGI environment. The contents of this dictionary are fully described in the "WSGI Environment":#wsgi-environment section.
+# Return a 3-tuple of @(status, headers, body)@ where:
+## @status@ must contain the HTTP status code and reason phrase of the response. The status code and reason must be present, in that order, separated by a single space. (See RFC 2616, Section 6.1.1 for more information.)
+## @headers@ must be a standard Python list containing 2-tuples of @(name, value)@ pairs representing the HTTP headers of the response. Each header name must represent a valid HTTP header field name (as defined by RFC 2616, Section 4.2) without trailing colon or other punctuation.
+## @body@ must be an iterable representing the HTTP response body.
+## @status@ and the name of each header present in @headers@ must not have leading or trailing whitespace.
+## @status@, and the contents of @headers@ (both name and value) must not contain control characters including carriage returns or linefeeds.
+## @status@, @headers@, and the chunks yielded by the @body@ iterator should be returned as byte strings, though for implementations where native strings are unicode, native strings may be returned. The server must encode unicode values using ISO-8859-1.
+## The amount of data yielded by the body iterable must not exceed the length specified by the @Content-Length@ response header, if defined.
+## The @body@ iterable *may* be a native string, instead of a native string wrapped in a list for the simple case, but this is *not recommended*.
 
-*Note:* Although we refer to it as an "application", this should not be construed to mean that application developers will use WSGI2 as a web programming API. It is assumed that application developers will continue to use existing, high-level framework services to develop their applications. WSGI2 is a tool for framework and server developers, and is not intended to directly support application developers.
-
-A WSGI2 application must accept a single positional argument which must be an instance of a base Python dictionary containing what is referred to as the WSGI environment. The contents of this dictionary are fully described in the "WSGI Environment":#wsgi-environment section.
-
-The return value of the application must be a 3-tuple of @(status, headers, body)@ where:
-
-# @status@ must contain the HTTP status code and reason phrase of the response. The status code and reason must be present, in that order, separated by a single space. (See RFC 2616, Section 6.1.1 for more information.)
-# @headers@ must be a standard Python list containing 2-tuples of @(name, value)@ pairs representing the HTTP headers of the response. Each header name must represent a valid HTTP header field name (as defined by RFC 2616, Section 4.2) without trailing colon or other punctuation.
-# @body@ must be an iterable representing the HTTP response body.
-# @status@ and the name of each header present in @headers@ must not have leading or trailing whitespace.
-# @status@, and the contents of @headers@ (both name and value) must not contain control characters including carriage returns or linefeeds.
-# @status@, @headers@, and the chunks yielded by the @body@ iterator should be returned as byte strings, though for implementations where native strings are unicode, native strings may be returned. The server must encode unicode values using ISO-8859-1.
-# The amount of data yielded by the body iterable must not exceed the length specified by the @Content-Length@ response header, if defined.
-# The @body@ iterable *may* be a native string, instead of a native string wrapped in a list for the simple case, but this is *not recommended*.
-
-Applications and middleware must not alter HTTP/1.1 "hop-by-hop" features or headers, any equivalent features in HTTP/1.0, or any headers that would affect the persistence of the client's connection to the web server. Applications and middleware may interrogate the environment for their presence and value. These features are the exclusive province of the actual web server, and a server should consider it a fatal error for an application to attempt sending them, and raise an error if they are supplied as return values from an application in the headers structure. (For more specifics on "hop-by-hop" features and headers, please see the Other HTTP Features section below.)
+Additionally, applications and middleware must not alter HTTP 1.1 "hop-by-hop" features or headers, any equivalent features in HTTP/1.0, or any headers that would affect the persistence of the client's connection to the web server. Applications and middleware may, however, interrogate the environment for their presence and value. These features are the exclusive province of the server, and a server should consider it a fatal error for an application to attempt sending them, and raise an error if they are supplied as return values from an application in the headers structure.
 
 
 h2. Server / Gateway API
