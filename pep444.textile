@@ -269,7 +269,7 @@ The semantics of each method are as documented in the Python Library Reference, 
 # The write() method must accept a native string argument.
 # The writelines() method must accept a sequence argument that consists entirely of native strings.
 
-The methods listed in the table above must be supported by all servers conforming to this specification. Applications conforming to this specification must not use any other methods or attributes of the errors object. In particular, applications must not attempt to close this stream, even if it possesses a close() method.
+The methods listed in the table above must be supported by all servers conforming to this specification. Applications conforming to this specification must not use any other methods or attributes of the @wsgi.errors@ object. In particular, applications must not attempt to close this stream, even if it possesses a close() method.
 
 
 h2. HTTP Features
