@@ -36,14 +36,14 @@ This document utilizes several terms which need to be clearly defined:
 
 # *Byte string:* The data format returned by socket read operations on a given implementation. In both Python 2.X and 3.X CPython implementations this is a literal _byte string_. For implementations that do not have the concept of a _byte string_, this is a @ISO-8859-1@ _unicode string_ with allowable characters in the range @\u0000@ through @\u00FF@ inclusive.
 # *Unicode string:* A series of Unicode characters.
-# *Native string:* The primary string type for a given implementation. For Python 2.X as implemented by CPython, this is a _byte string_. For Python 3.X, this is a _unicode string_.
+# *Native string:* The primary string type for a given Python implementation. For Python 2.X as implemented by CPython, this is a _byte string_. For Python 3.X, this is a _unicode string_.
 # *Application callable* or *application object*: Interchangeable terms representing "a function, a method, or an instance with a @__call__@ method".
 
 
 
 h1. Specification Overview
 
-WSGI defines a conversation held between two parties, optionally with intermediaries that understand both sides of the conversation. This conversation is between the "server" (or "gateway", hereafter referred to simply as server) and the "application" (or "framework", hereafter referred to simply as application) with "middleware" between them. A WSGI2 server prepares an environment based on a request and invokes a callable object (the application) using the API defined herein; the result of the invocation is then used as the response sent back to the client.
+WSGI defines a conversation held between two parties, optionally with intermediaries that understand both sides of the conversation. This conversation is between the "server" (or "gateway", hereafter referred to simply as server) and the "application" (or "framework", hereafter referred to simply as application) with "middleware" optionally between them. A WSGI2 server prepares an environment based on a request and invokes a callable object (the application) using the API defined herein; the result of the invocation is then used as the response sent back to the client.
 
 The specifics of how the application callable is provided to the server is left as an implementation detail of the server and is outside the scope of this document. It is assumed that some servers will require an application deployer to write a short script to create an instance of the server, and then supply it with the application object. Other servers may use configuration files or other mechanisms to specify where an application object should be imported from or otherwise obtained.
 
