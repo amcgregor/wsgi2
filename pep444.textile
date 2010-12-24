@@ -322,6 +322,11 @@ h1. Python Cross-Version Compatibility
 bq. *Status:* TBD.
 
 
+h1. Rationale
+
+bq. *Status:* TBD.
+
+
 
 h1. Examples
 
