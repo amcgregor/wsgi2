@@ -124,6 +124,8 @@ Middleware plays the role of a server with respect to the application they wrap,
 
 The presence of middleware in general is transparent to both the server and the application sides of the interface, and must require no special support. A user who desires to incorporate middleware into an application simply provides the middleware component to the server, as if it were an application, and configures the middleware component to invoke the application, as if the middleware component were a server. Of course, the "application" that the middleware wraps may in fact be another middleware component wrapping another application, and so on, creating what is referred to as a "middleware stack".
 
+*Note:* Care must be taken when modifying the returned body. If the amount of data returned will differ and a @Content-Length@ header is present, it must be updated to reflect the true length of the body returned by the middleware.
+
 
 h2. Filter API
 
@@ -133,6 +135,7 @@ Such "filters" can perform such functions as:
 
 * Perform additional processing on the incoming request, such as transforming HTTP GET arguments.
 * Perform content post-processing, such as applying XSL stylesheets or GZip compression.
+* Calculate and add optional HTTP headers such as @Content-MD5@.
 
 The filtering API may be implemented by WSGI2 servers, and filtering functionality can be added to non-supporting servers by utilizing a middleware layer which implements the filtering API.
 
@@ -154,6 +157,8 @@ Egress filters are called after the application (and middleware stack), may modi
 
 There is no requirement for egress filters to return the same objects as those passed in.
 
+*Note:* As per middleware, care must be taken when modifying the returned body.
+
 
 
 h2. Asynchronous Processing
@@ -164,22 +169,61 @@ bq. *Status:* TBD.<br>*Note:* See the @futures@ PEP.
 
 h1. Implementation Details
 
-bq. *Status:* TBD.
-
-
 h2. The WSGI Environment
-
-bq. *Status:* Draft.
 
 # All keys in the environment dictionary must be native strings.
 # The value matching the @'wsgi.url_scheme'@ key must be a native string.
 # For implementations where the native string is unicode, all CGI keys, and all CGI values other than @REQUEST_URI@, @SCRIPT_NAME@, @PATH_INFO@, and @QUERY_STRING@, must be encoded using ISO-8859-1.
 # The value for the @REQUEST_URI@ key must be a byte string.
 # The values for the @SCRIPT_NAME@, @PATH_INFO@, and @QUERY_STRING@ keys must be unicode strings. The encoding used must be stored in @wsgi.uri_encoding@ and default to UTF-8. The application developer may provide a different default. If conversion failed, ISO-8859-1 must be used.
+# The values for @SCRIPT_NAME@ and @PATH_INFO@ must be URL-decoded.
 # The value for the @wsgi.uri_encoding@ key must be a native string.
 # The value matching the @wsgi.input@ key must produce byte strings.
 # The @read()@ and @readline()@ methods of @wsgi.input@ may optionally take a size hint. If no hint is given @read()@ reads until end of stream.
 # Read operations across @wsgi.input@ must return an empty string as an end of stream marker.
+
+The following CGI variables must be present.
+
+|_<. Key |_<. Description |
+|^. @REQUEST_METHOD@ | The HTTP request method, such as "GET" or "POST". |
+|^. @SCRIPT_NAME@ | The initial portion of the request URL's "path" that corresponds to the application object, so that the application knows its virtual "location". This may be an empty string if the application corresponds to the "root" of the server. |
+|^. @PATH_INFO@ | The remainder of the request URL's "path", designating the virtual "location" of the request's target within the application. |
+|^. @QUERY_STRING@ | The portion of the request URL that follows the @"?"@, if any, or an empty string. |
+|^. @SERVER_NAME@<br>@SERVER_PORT@ | When combined with @SCRIPT_NAME@ and @PATH_INFO@ these variables can be used to complete the URL. Note, however, that @HTTP_HOST@, if present, should be used in preference to @SERVER_NAME@ for reconstructing the request URL. See the URL Reconstruction section below for more detail. |
+|^. @SERVER_PROTOCOL@ | The version of the protocol the client used to send the request. Typically this will be something like @"HTTP/1.0"@ or @"HTTP/1.1"@ and may be used by the application to determine how to treat any HTTP request headers. |
+
+The following CGI values may present be in the environment.
+
+|_<. Key |_<. Description |
+|^. @CONTENT_TYPE@ | The contents of the @Content-Type@ header in the HTTP request. |
+|^. @CONTENT_LENGTH@ | The contents of the @Content-Length@ header in the HTTP request. |
+|^. @HTTP_*@ Variables | Variables corresponding to the client-supplied HTTP request headers. The presence or absence of these variables should correspond with the presence or absence of the appropriate HTTP header in the request. |
+
+A server should attempt to provide as many other CGI variables as are applicable. In addition, if SSL is in use, the server should also provide as many of the SSL environment variables [5] as are applicable, such as @HTTPS=on@ and @SSL_PROTOCOL@. Note, however, that an application that uses any CGI variables other than the ones listed above are necessarily non-portable to web servers that do not support the relevant extensions. (For example, web servers that do not publish files will not be able to provide a meaningful @DOCUMENT_ROOT@ or @PATH_TRANSLATED@.)
+
+A WSGI2-compliant server should document the variables it provides, along with their definitions, as appropriate. Applications must check for the presence of any server-specific variables they require, and have a fallback plan in the event such a variable is absent.
+
+In addition to the CGI-defined variables, the environ dictionary may also contain arbitrary operating-system "environment variables", and must contain the following WSGI2-defined variables:
+
+|_<. Key |_<. Description |
+|^. @wsgi.version@ | The tuple @(2, 0)@, representing WSGI version 2.0. |
+|^. @wsgi.url_scheme@ | A value representing the "scheme" portion of the URL at which the application is being invoked. Normally, this will have the value @"http"@ or @"https"@, as appropriate. |
+|^. @wsgi.input@ | An input stream (file-like object) from which bytes constituting the HTTP request body can be read. |
+|^. @wsgi.errors@ | An output stream (file-like object) to which error output text can be written for the purpose of recording program or other errors in a standardized and possibly centralized location. |
+|^. @wsgi.multithread@ | This value must evaluate true if the application object may be simultaneously invoked by another thread in the same process, and should evaluate false otherwise. |
+|^. @wsgi.multiprocess@ | This value must evaluate true if an equivalent application object may be simultaneously invoked by another process, and should evaluate false otherwise. |
+|^. @wsgi.run_once@ | This value must evaluate true if the server or gateway expects (but does not guarantee) that the application will only be invoked this one time during the life of its containing process. Normally, this will only be true for a gateway based on CGI (or similar). |
+|^. @wsgi.async@ | This value must evaluate to true if the server is capable of handling asynchronous processing tokens as defined in the Asynchronous Processing chapter. |
+
+The following environment variables may be present if supported by the server:
+
+|_<. Key |_<. Description |
+|^. @wsgi.script_name@ | The non-URL-decoded SCRIPT_NAME value. This is the original URL-encoded value derived from the request URI. |
+|^. @web3.path_info@ | The non-URL-decoded PATH_INFO value. This is the original URL-encoded value derived from the request URI. |
+
+*Note*: Through a historical inequity, by virtue of the CGI specification, @SCRIPT_NAME@ and @PATH_INFO@ are present within the environment as an already URL-decoded string.
+
+Finally, the environ dictionary may also contain server-defined variables. These variables must have names which are composed of only lower-case letters, numbers, dots, and underscores, and should be prefixed with a name that is unique to the defining server or gateway. For example, @mod_wsgi@ might define variables with names like @mod_wsgi.some_variable@.
 
 
 h2. Input Stream
@@ -208,7 +252,11 @@ The input stream should silently ignore attempts to read more than the content l
 
 h2. Error Stream
 
-bq. *Status:* TBD.
+This should be a "text mode" stream; i.e., applications should use "\n" as a line ending, and assume that it will be converted to the correct line ending by the server.
+
+For many servers, @wsgi.errors@ will be the server's main error log. Alternatively, this may be @sys.stderr@, or a log file of some sort. The server's documentation should include an explanation of how to configure this or where to find the recorded output. A server may supply different error streams to different applications, if this is desired.
+
+*Note:* It is highly recommended for servers to implement @wsgi.errors@ as a wrapper around the standard Python logging module using the @wsgi.errors@ handler name. This will allow for maximum configurability using standard Python interfaces versus server-specific configuration directives. In addition, there are many different ways to route the Python logging module, including STDERR, on-disk log file, over the network, and via e-mail or instant messenger.
 
 The error stream (@wsgi.errors@) provided by the server must support the following methods:
 
