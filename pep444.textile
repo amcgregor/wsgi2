@@ -95,7 +95,7 @@ Additionally,
 
 # HTTP header names are case-insensitive, so be sure to take that into consideration when examining application-supplied headers.
 # The server may apply HTTP transfer encodings or perform other transformations for the purpose of implementing HTTP features such as chunked transfer.
-# The server must not attempt to handle byte range requests; the application can optimize this use case far more easily than a server.  (For example and application can generate the correct body length vs. generating the whole body and having the server buffer and slice it.)
+# The server must not attempt to handle byte range requests; the application can optimize this use case far more easily than a server.  (For example an application can generate the correct body length vs. generating the whole body and having the server buffer and slice it.)
 # Servers must not directly use any other attributes of the body iterable returned by the application.
 
 
