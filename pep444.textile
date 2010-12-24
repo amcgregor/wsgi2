@@ -89,7 +89,7 @@ A WSGI 2 server must:
 # Ensure that line endings within the body are not altered.
 # Transmit body chunks to the client in an unbuffered fashion, completing the transmission of each set of bytes before requesting another one. (Applications should perform their own buffering.)
 # Call the @close()@ method of the body returned by the application, if present, upon completion of the current request. This should be called regardless of the termination status of the request. This is to support resource release by the application and is intended to complement PEP 325's generator support, and other common iterables with close() methods.
-# Support the HTTP 1.1 specification, including full URL @REQUEST_URI@s, pipelining of requests and chunked transfer encoding.
+# Support the HTTP 1.1 specification, including full URL @REQUEST_URI@, pipelining of requests and chunked transfer encoding.
 
 Additionally,
 
