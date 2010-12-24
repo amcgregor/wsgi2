@@ -101,13 +101,11 @@ Additionally,
 
 h3. Server Extension APIs
 
-bq. *Status:* Final draft.
-
 Some server authors may wish to expose more advanced APIs that application authors can use for specialized purposes. For example, a server based on mod_python might wish to expose part of the Apache API as a WSGI2 extension.
 
 In the simplest case, this requires nothing more than defining an environ variable, such as @mod_python.some_api@. But, in many cases, the possible presence of middleware can make this difficult. For example, an API that offers access to the same HTTP headers that are found in environ variables might return different data if environ has been modified by middleware.
 
-In general, any extension API that duplicates, supplants, or bypasses some portion of WSGI2 functionality runs the risk of being incompatible with middleware components. Server developers should not assume that nobody will use middleware, because some framework developers specifically organize their frameworks to function almost entirely as middleware of various kinds.
+In general, any extension API that duplicates, supplants, or bypasses some portion of WSGI2 functionality runs the risk of being incompatible with middleware components. Server developers should not assume that nobody will use middleware, because many framework developers specifically organize their frameworks to function almost entirely as middleware of various kinds.
 
 So, to provide maximum compatibility, servers that provide extension APIs that replace some WSGI2 functionality, must design those APIs so that they are invoked using the portion of the API that they replace. For example, an extension API to access HTTP request headers must require the application to pass in its current environ, so that the server may verify that HTTP headers accessible via the API have not been altered by middleware. If the extension API cannot guarantee that it will always agree with environ about the contents of HTTP headers, it must refuse service to the application, e.g. by raising an error, returning None instead of a header collection, or whatever is appropriate to the API.
 
