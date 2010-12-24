@@ -173,10 +173,10 @@ h2. The WSGI Environment
 
 # All keys in the environment dictionary must be native strings.
 # The value matching the @'wsgi.url_scheme'@ key must be a native string.
-# For implementations where the native string is unicode, all CGI keys, and all CGI values other than @REQUEST_URI@, @SCRIPT_NAME@, @PATH_INFO@, and @QUERY_STRING@, must be encoded using ISO-8859-1.
+# For implementations where the native string is unicode, all CGI keys, and all CGI values other than @REQUEST_URI@, @SCRIPT_NAME@, @PATH_INFO@, @PARAMETERS@, and @QUERY_STRING@, must be encoded using ISO-8859-1.
 # The value for the @REQUEST_URI@ key must be a byte string.
-# The values for the @SCRIPT_NAME@, @PATH_INFO@, and @QUERY_STRING@ keys must be unicode strings. The encoding used must be stored in @wsgi.uri_encoding@ and default to UTF-8. The application developer may provide a different default. If conversion failed, ISO-8859-1 must be used.
-# The values for @SCRIPT_NAME@ and @PATH_INFO@ must be URL-decoded.
+# The values for the @SCRIPT_NAME@, @PATH_INFO@, @PARAMETERS@, and @QUERY_STRING@ keys must be unicode strings. The encoding used must be stored in @wsgi.uri_encoding@ and default to UTF-8. The application developer may provide a different default. If conversion failed, ISO-8859-1 must be used.
+# The values for @SCRIPT_NAME@, @PARAMETERS@, and @PATH_INFO@ must be URL-decoded.
 # The value for the @wsgi.uri_encoding@ key must be a native string.
 # The value matching the @wsgi.input@ key must produce byte strings.
 # The @read()@ and @readline()@ methods of @wsgi.input@ may optionally take a size hint. If no hint is given @read()@ reads until end of stream.
@@ -189,6 +189,7 @@ The following CGI variables must be present.
 |^. @SCRIPT_NAME@ | The initial portion of the request URL's "path" that corresponds to the application object, so that the application knows its virtual "location". This may be an empty string if the application corresponds to the "root" of the server. |
 |^. @PATH_INFO@ | The remainder of the request URL's "path", designating the virtual "location" of the request's target within the application. |
 |^. @QUERY_STRING@ | The portion of the request URL that follows the @"?"@, if any, or an empty string. |
+|^. @PARAMETERS@ | The portion of the request URL that follows the @";"@, if any, or an empty string. |
 |^. @SERVER_NAME@<br>@SERVER_PORT@ | When combined with @SCRIPT_NAME@ and @PATH_INFO@ these variables can be used to complete the URL. Note, however, that @HTTP_HOST@, if present, should be used in preference to @SERVER_NAME@ for reconstructing the request URL. See the URL Reconstruction section below for more detail. |
 |^. @SERVER_PROTOCOL@ | The version of the protocol the client used to send the request. Typically this will be something like @"HTTP/1.0"@ or @"HTTP/1.1"@ and may be used by the application to determine how to treat any HTTP request headers. |
 
