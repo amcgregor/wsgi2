@@ -274,8 +274,6 @@ The methods listed in the table above must be supported by all servers conformin
 
 h2. HTTP Features
 
-bq. *Status:* Draft.<br>*Note:* The byte-range text should likely be removed and made entirely the domain of the application.
-
 Servers should:
 
 # Be conservative in their implementation and generally allow applications complete control over their output.
