@@ -28,11 +28,11 @@ Applications and servers which are written to this specification are meant to wo
 
 h1. Definitions
 
-bq. *Status:* Final, open to additions.
-
 The key words *must*, *must not*, *required*, *shall*, *shall not*, *should*, *should not*, *recommended*, *may*, and *optional* in this document are to be interpreted as described in RFC 2119[3].
 
 This document utilizes several terms which need to be clearly defined:
+
+<!-- TODO: ReST definition list. -->
 
 # *Byte string:* The data format returned by socket read operations on a given implementation.  In both Python 2.X and 3.X CPython implementations this is a literal _byte string_.  For implementations that do not have the concept of a _byte string_, this is a @ISO-8859-1@ _unicode string_ with allowable characters in the range @\u0000@ through @\u00FF@ inclusive.
 # *Unicode string:* A series of Unicode characters.
