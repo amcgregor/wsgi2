@@ -103,22 +103,22 @@ h3. Server Extension APIs
 
 Some server authors may wish to expose more advanced APIs that application authors can use for specialized purposes. For example, a server based on mod_python might wish to expose part of the Apache API as a WSGI2 extension.
 
-In the simplest case, this requires nothing more than defining an environ variable, such as @mod_python.some_api@. But, in many cases, the possible presence of middleware can make this difficult. For example, an API that offers access to the same HTTP headers that are found in environ variables might return different data if environ has been modified by middleware.
+In the simplest case, this requires nothing more than defining a key in the request environment, such as @mod_python.some_api@. But, in many cases, the possible presence of middleware can make this difficult. For example, an API that offers access to the same HTTP headers that are found in environment variables might return different data if the environment has been modified by middleware.
 
 In general, any extension API that duplicates, supplants, or bypasses some portion of WSGI2 functionality runs the risk of being incompatible with middleware components. Server developers should not assume that nobody will use middleware, because many framework developers specifically organize their frameworks to function almost entirely as middleware of various kinds.
 
-So, to provide maximum compatibility, servers that provide extension APIs that replace some WSGI2 functionality, must design those APIs so that they are invoked using the portion of the API that they replace. For example, an extension API to access HTTP request headers must require the application to pass in its current environ, so that the server may verify that HTTP headers accessible via the API have not been altered by middleware. If the extension API cannot guarantee that it will always agree with environ about the contents of HTTP headers, it must refuse service to the application, e.g. by raising an error, returning None instead of a header collection, or whatever is appropriate to the API.
+So, to provide maximum compatibility, servers that provide extension APIs that replace some WSGI2 functionality, must design those APIs so that they are invoked using the portion of the API that they replace. For example, an extension API to access HTTP request headers must require the application to pass in its current environment, so that the server may verify that HTTP headers accessible via the API have not been altered by middleware. If the extension API cannot guarantee that it will always agree with the environment about the contents of HTTP headers, it must refuse service to the application, e.g. by raising an error, returning @None@ instead of a header collection, or whatever is appropriate to the API.
 
-These guidelines also apply to middleware that adds information such as parsed cookies, form variables, sessions, and the like to environ. Specifically, such middleware should provide these features as functions which operate on environ, rather than simply stuffing values into environ. This helps ensure that information is calculated from environ after any middleware has done any URL rewrites or other environ modifications.
+These guidelines also apply to middleware that adds information such as parsed cookies, form variables, sessions, and the like to the environment. Specifically, such middleware should provide these features as functions which operate on the environment, rather than simply stuffing values into the environment. This helps ensure that information is calculated from the environment after any middleware has done any URL rewrites or other modifications.
 
-It is very important that these "safe extension" rules be followed by both server and middleware developers, in order to avoid a future in which middleware developers are forced to delete any and all extension APIs from environ to ensure that their mediation isn't being bypassed by applications using those extensions!
+It is very important that these "safe extension" rules be followed by both server and middleware developers, in order to avoid a future in which middleware developers are forced to delete any and all extension APIs from the environment to ensure that their mediation isn't being bypassed by applications using those extensions!
 
 
 h2. Middleware API
 
 Middleware plays the role of a server with respect to the application they wrap, while also acting as an application with respect to the server they are called by. Middleware components can perform such functions as:
 
-* Routing a request to different application objects based on the target URL, after rewriting the environ accordingly.
+* Routing a request to different application objects based on the target URL, after rewriting the environment accordingly.
 * Allowing multiple applications to run side-by-side in the same process.
 * Load balancing and remote processing by forwarding requests and responses over a network.
 
@@ -152,7 +152,7 @@ h3. Egress Filters
 
 Egress filters are called after the application (and middleware stack), may modify the response, and must:
 
-# Accept four arguments: @environ@, @status@, @headers@, and @body@, where @environ@ is the request environment and @status@, @headers@, and @body@ are the values returned by the application.
+# Accept four positional arguments: @environ@, @status@, @headers@, and @body@, where @environ@ is the request environment and @status@, @headers@, and @body@ are the values returned by the application.
 # Return a 3-tuple of (@status@, @headers@, and @body@) with the same restrictions as an application.
 
 There is no requirement for egress filters to return the same objects as those passed in.
@@ -203,7 +203,7 @@ A server should attempt to provide as many other CGI variables as are applicable
 
 A WSGI2-compliant server should document the variables it provides, along with their definitions, as appropriate. Applications must check for the presence of any server-specific variables they require, and have a fallback plan in the event such a variable is absent.
 
-In addition to the CGI-defined variables, the environ dictionary may also contain arbitrary operating-system "environment variables", and must contain the following WSGI2-defined variables:
+In addition to the CGI-defined variables, the environment dictionary may also contain arbitrary operating-system "environment variables", and must contain the following WSGI2-defined variables:
 
 |_<. Key |_<. Description |
 |^. @wsgi.version@ | The tuple @(2, 0)@, representing WSGI version 2.0. |
@@ -223,7 +223,7 @@ The following environment variables may be present if supported by the server:
 
 *Note*: Through a historical inequity, by virtue of the CGI specification, @SCRIPT_NAME@ and @PATH_INFO@ are present within the environment as an already URL-decoded string.
 
-Finally, the environ dictionary may also contain server-defined variables. These variables must have names which are composed of only lower-case letters, numbers, dots, and underscores, and should be prefixed with a name that is unique to the defining server or gateway. For example, @mod_wsgi@ might define variables with names like @mod_wsgi.some_variable@.
+Finally, the environment dictionary may also contain server-defined variables. These variables must have names which are composed of only lower-case letters, numbers, dots, and underscores, and should be prefixed with a name that is unique to the defining server or gateway. For example, @mod_wsgi@ might define variables with names like @mod_wsgi.some_variable@.
 
 
 h2. Input Stream
@@ -288,7 +288,7 @@ Applications must not:
 
 # Generate any "hop-by-hop" headers[4].
 # Attempt to use HTTP features that would require them to generate such headers.
-# Rely on the content of any incoming "hop-by-hop" headers in the environ dictionary.
+# Rely on the content of any incoming "hop-by-hop" headers in the environment dictionary.
 # Apply a transport encoding to its response body.
 
 Servers must:
