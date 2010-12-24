@@ -122,7 +122,7 @@ Middleware plays the role of a server with respect to the application they wrap,
 * Allowing multiple applications to run side-by-side in the same process.
 * Load balancing and remote processing by forwarding requests and responses over a network.
 
-The presence of middleware in general is transparent to both the server and the application sides of the interface, and must require no special support. A user who desires to incorporate middleware into an application simply provides the middleware component to the server, as if it were an application, and configures the middleware component to invoke the application, as if the middleware component were a server. Of course, the "application" that the middleware wraps may in fact be another middleware component wrapping another application, and so on, creating what is referred to as a "middleware stack".
+The presence of middleware in general is transparent to both the server and the application sides of the interface, and must require no special support. A developer who desires to incorporate middleware into an application simply provides the middleware component to the server, as if it were an application, and configures the middleware component to invoke the application, as if the middleware component were a server. Of course, the "application" that the middleware wraps may in fact be another middleware component wrapping another application, and so on, creating what is referred to as a "middleware stack".
 
 *Note:* Care must be taken when modifying the returned body. If the amount of data returned will differ and a @Content-Length@ header is present, it must be updated to reflect the true length of the body returned by the middleware.
 
@@ -131,7 +131,7 @@ h2. Filter API
 
 A large amount of middleware only applies changes to the environment coming in from the server before reaching the application, or, conversely, only applies transformations to the data returned by the application. Additionally, middleware, by wrapping applications and other middleware in a recursive structure, is less efficient and harder to debug than a "flat" model. Filters fill the need for efficient ingress- or egress-only modifications.
 
-Such "filters" can perform such functions as:
+"Filters" can perform such functions as:
 
 * Perform additional processing on the incoming request, such as transforming HTTP GET arguments.
 * Perform content post-processing, such as applying XSL stylesheets or GZip compression.
@@ -238,14 +238,14 @@ The input stream (@wsgi.input@) provided by the server must support the followin
 
 The semantics of each method are as documented in the Python Library Reference, except for these notes as listed in the table above:
 
-# The server is not required to read past the client's specified Content-Length, and is allowed to simulate an end-of-file condition if the application attempts to read past that point. The application should not attempt to read more data than is specified by the CONTENT_LENGTH variable.
+# The server must honor the client's specified @Content-Length@, if present, and must:
+## Truncate read requests that would exceed the request body length.
+## After consuming the request body, simulate an end-of-file condition (by returning an empty string) if the application attempts further reads.
 # The implementation must support the optional size argument to readline().
 # The application is free to not supply a size argument to readlines(), and the server or gateway is free to ignore the value of any supplied size argument.
 # The read, readline and __iter__ methods must return a bytes instance. The readlines method must return a sequence which contains instances of bytes.
 
 The methods listed in the table above must be supported by all servers conforming to this specification. Applications conforming to this specification must not use any other methods or attributes of the input object. In particular, applications must not attempt to close this stream, even if it possesses a close() method.
-
-The input stream should silently ignore attempts to read more than the content length of the request. If no content length is specified the stream must be a dummy stream that does not return anything.
 
 
 h2. Error Stream
