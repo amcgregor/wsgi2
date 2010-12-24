@@ -22,7 +22,7 @@ This protocol specification is influenced heavily by the Web Services Gateway In
 
 Applications and servers which are written to this specification are meant to work properly under Python versions greater than or equal to 2.6, less than 3.0, and greater than or equal to 3.1. Neither an application nor a server that implements the WSGI2 specification can be easily written which will work under Python 2 versions earlier than 2.6 nor Python 3 versions earlier than 3.1.
 
-*Note:* Python 2.6 is the first Python version that supported an alias for @bytes@ and the @b"foo"@ literal syntax. This is why it is the minimum version supported by WSGI2. While developers may attempt to provide solutions for earlier versions, such compatibility is not defined herein.
+*Note:* Python 2.6 is the first Python version that supported an alias for @bytes@ and the @b"foo"@ literal syntax. Byte strings are an integral part of WSGI2, thus Python 2.6 being the minimum version supported. While developers may attempt to provide solutions for earlier versions, such compatibility is not defined herein.
 
 
 
