@@ -18,7 +18,7 @@ This document specifies a proposed second-generation standard interface between 
 
 h1. Introduction
 
-This protocol specification is influenced heavily by the Web Services Gateway Interface (WSGI) 1.0 standard described in PEP 333[1], the extensions proposed in PEP 3333[2], and community discussion.  The high-level rationale for having any standard that allows Python-based web servers and applications to interoperate is outlined in PEP 333.  This document has been written to clarify potentially ambiguous language from PEP 333, define Python 3.X compatibility, and update it with improved methodologies.
+This protocol specification is influenced heavily by the Web Services Gateway Interface (WSGI) 1.0 standard described in PEP 333[1], the extensions proposed in PEP 3333[2], and community discussion. The high-level rationale for having any standard that allows Python-based web servers and applications to interoperate is outlined in PEP 333. This document has been written to clarify potentially ambiguous language from PEP 333, define Python 3.X compatibility, and update it with improved methodologies.
 
 Applications and servers which are written to this specification are meant to work properly under Python versions greater than or equal to 2.6, less than 3.0, and greater than or equal to 3.1. Neither an application nor a server that implements the WSGI2 specification can be easily written which will work under Python 2 versions earlier than 2.6 nor Python 3 versions earlier than 3.1.
 
@@ -34,7 +34,7 @@ This document utilizes several terms which need to be clearly defined:
 
 <!-- TODO: ReST definition list. -->
 
-# *Byte string:* The data format returned by socket read operations on a given implementation.  In both Python 2.X and 3.X CPython implementations this is a literal _byte string_.  For implementations that do not have the concept of a _byte string_, this is a @ISO-8859-1@ _unicode string_ with allowable characters in the range @\u0000@ through @\u00FF@ inclusive.
+# *Byte string:* The data format returned by socket read operations on a given implementation. In both Python 2.X and 3.X CPython implementations this is a literal _byte string_. For implementations that do not have the concept of a _byte string_, this is a @ISO-8859-1@ _unicode string_ with allowable characters in the range @\u0000@ through @\u00FF@ inclusive.
 # *Unicode string:* A series of Unicode characters.
 # *Native string:* The primary string type for a given implementation. For Python 2.X as implemented by CPython, this is a _byte string_. For Python 3.X, this is a _unicode string_.
 
@@ -42,13 +42,11 @@ This document utilizes several terms which need to be clearly defined:
 
 h1. Specification Overview
 
-bq. *Status:* Final.
-
-WSGI defines a conversation held between two parties, optionally with intermediaries that understand both sides of the conversation. This conversation is between the "server" (or "gateway", hereafter referred to simply as server) and the "application" (or "framework", hereafter referred to simply as application) with "middleware" between them. A WSGI2 server prepares an environment based on a request and invokes a callable object (the application) using a defined API; the result of the invocation is then used as the response.
+WSGI defines a conversation held between two parties, optionally with intermediaries that understand both sides of the conversation. This conversation is between the "server" (or "gateway", hereafter referred to simply as server) and the "application" (or "framework", hereafter referred to simply as application) with "middleware" between them. A WSGI2 server prepares an environment based on a request and invokes a callable object (the application) using the API defined herein; the result of the invocation is then used as the response sent back to the client.
 
 The specifics of how the application callable is provided to the server is left as an implementation detail of the server and is outside the scope of this document. It is assumed that some servers will require an application deployer to write a short script to create an instance of the server, and then supply it with the application object. Other servers may use configuration files or other mechanisms to specify where an application object should be imported from or otherwise obtained.
 
-In addition to "pure" servers and applications, it is also possible to create "middleware" components that implement both sides of this specification. Such components act as an application to their caller, as a server to the wrapped application, and can be used to provide extended APIs, content transformation, navigation, and other useful functions. This is similar to the decorator functionality in Python, though middleware must conform to the protocol defined in this document.
+In addition to "pure" servers and applications, it is also possible to create "middleware" components that implement both sides of this specification. Such components act as an application to their caller, as a server to the wrapped application. These can be used to provide extended APIs, content transformation, navigation, and other useful functions. This is similar to the decorator functionality in Python, though middleware must conform to the protocol defined in this document.
 
 A third form of extension, filters, are described in this document. "Filters" are similar to middleware, though instead of wrapping an application in multiple layers, recursively descending from server through to application and returning in the opposite direction, filters provide a mechanism to alter the request environment before being passed to the application/middleware stack, and a mechanism for altering the response returned by the application/middleware stack. Filters should not be constructed that are co-dependant: if a filter needs to alter the request _and_ response, it should be implemented as middleware. Filter support is optional at the server level.
 
@@ -63,16 +61,16 @@ An application is any function, method, or instance with a @__call__@ method. Ap
 
 *Note:* Although we refer to it as an "application", this should not be construed to mean that application developers will use WSGI2 as a web programming API. It is assumed that application developers will continue to use existing, high-level framework services to develop their applications. WSGI2 is a tool for framework and server developers, and is not intended to directly support application developers.
 
-A WSGI2 application must accept a single positional argument which must be an instance of a base Python dictionary containing what is referred to as the WSGI environment.  The contents of this dictionary are fully described in the "WSGI Environment":#wsgi-environment section.
+A WSGI2 application must accept a single positional argument which must be an instance of a base Python dictionary containing what is referred to as the WSGI environment. The contents of this dictionary are fully described in the "WSGI Environment":#wsgi-environment section.
 
 The return value of the application must be a 3-tuple of @(status, headers, body)@ where:
 
-# @status@ must contain the HTTP status code and reason phrase of the response. The status code and reason must be present, in that order, separated by a single space.  (See RFC 2616, Section 6.1.1 for more information.)
+# @status@ must contain the HTTP status code and reason phrase of the response. The status code and reason must be present, in that order, separated by a single space. (See RFC 2616, Section 6.1.1 for more information.)
 # @headers@ must be a standard Python list containing 2-tuples of @(name, value)@ pairs representing the HTTP headers of the response. Each header name must represent a valid HTTP header field name (as defined by RFC 2616, Section 4.2) without trailing colon or other punctuation.
 # @body@ must be an iterable representing the HTTP response body.
 # @status@ and the name of each header present in @headers@ must not have leading or trailing whitespace.
 # @status@, and the contents of @headers@ (both name and value) must not contain control characters including carriage returns or linefeeds.
-# @status@, @headers@, and the chunks yielded by the @body@ iterator should be returned as byte strings, though for implementations where native strings are unicode, native strings may be returned.  The server must encode unicode values using ISO-8859-1.
+# @status@, @headers@, and the chunks yielded by the @body@ iterator should be returned as byte strings, though for implementations where native strings are unicode, native strings may be returned. The server must encode unicode values using ISO-8859-1.
 # The amount of data yielded by the body iterable must not exceed the length specified by the @Content-Length@ response header, if defined.
 # The @body@ iterable *may* be a native string, instead of a native string wrapped in a list for the simple case, but this is *not recommended*.
 
@@ -122,7 +120,7 @@ h2. Middleware API
 
 bq. *Status:* Draft.<br>*Note:* Needs elaboration.
 
-Middleware callables play the role of a server with respect to the application they wrap, while also acting as an application with respect to the server they are called by.  Middleware components can perform such functions as:
+Middleware callables play the role of a server with respect to the application they wrap, while also acting as an application with respect to the server they are called by. Middleware components can perform such functions as:
 
 * Routing a request to different application objects based on the target URL, after rewriting the environ accordingly.
 * Allowing multiple applications to run side-by-side in the same process.
@@ -164,7 +162,7 @@ bq. *Status:* Draft.
 # The value matching the @'wsgi.url_scheme'@ key must be a native string.
 # For implementations where the native string is unicode, all CGI keys, and all CGI values other than @REQUEST_URI@, @SCRIPT_NAME@, @PATH_INFO@, and @QUERY_STRING@, must be encoded using ISO-8859-1.
 # The value for the @REQUEST_URI@ key must be a byte string.
-# The values for the @SCRIPT_NAME@, @PATH_INFO@, and @QUERY_STRING@ keys must be unicode strings. The encoding used must be stored in @wsgi.uri_encoding@ and default to UTF-8.  The application developer may provide a different default.  If conversion failed, ISO-8859-1 must be used.
+# The values for the @SCRIPT_NAME@, @PATH_INFO@, and @QUERY_STRING@ keys must be unicode strings. The encoding used must be stored in @wsgi.uri_encoding@ and default to UTF-8. The application developer may provide a different default. If conversion failed, ISO-8859-1 must be used.
 # The value for the @wsgi.uri_encoding@ key must be a native string.
 # The value matching the @wsgi.input@ key must produce byte strings.
 # The @read()@ and @readline()@ methods of @wsgi.input@ may optionally take a size hint. If no hint is given @read()@ reads until end of stream.
@@ -233,7 +231,7 @@ h3. HTTP 1.1
 
 Servers that implement HTTP 1.1 must:
 
-# Provide transparent support for HTTP 1.1 Expect/Continue.  This can be accomplished in one of two ways:
+# Provide transparent support for HTTP 1.1 Expect/Continue. This can be accomplished in one of two ways:
 ## Respond to requests containing an @"Expect: 100-continue"@ request with an immediate @"100 Continue"@ response, and proceed normally.
 ## Proceed with the request normally, but provide the application with a @wsgi.input@ stream that will send the @"100 Continue"@ response if/when the application first attempts to read from the input stream. The read request must then remain blocked until the client responds.
 # Provide transparent support for chunked transfer encoding of request bodies.
@@ -243,7 +241,7 @@ Servers that implement HTTP 1.1 must:
 
 Note that these behavior restrictions do not apply for HTTP 1.0 requests or for requests that are not directed to an application object. Not defining a @Content-Length@ for responses to HTTP 1.0 requests must still be treated as an error condition by the server, for example.
 
-For more information on HTTP 1.1 Expect/Continue, see RFC 2616, sections 8.2.3 and 10.1.1.  For more information on chunked transfer encoding, see RFC 2616, section 3.6.1.
+For more information on HTTP 1.1 Expect/Continue, see RFC 2616, sections 8.2.3 and 10.1.1. For more information on chunked transfer encoding, see RFC 2616, section 3.6.1.
 
 
 h1. Python Cross-Version Compatibility
