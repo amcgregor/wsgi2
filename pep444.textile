@@ -73,19 +73,18 @@ An application is any function, method, or instance with a @__call__@ method. Ap
 ## The amount of data yielded by the body iterable must not exceed the length specified by the @Content-Length@ response header, if defined.
 ## The @body@ iterable *may* be a native string, instead of a native string wrapped in a list for the simple case, but this is *not recommended*.
 
-Additionally, applications and middleware must not alter HTTP 1.1 "hop-by-hop" features or headers, any equivalent features in HTTP/1.0, or any headers that would affect the persistence of the client's connection to the web server. Applications and middleware may, however, interrogate the environment for their presence and value. These features are the exclusive province of the server, and a server should consider it a fatal error for an application to attempt sending them, and raise an error if they are supplied as return values from an application in the headers structure.
+Additionally, applications and middleware must not alter HTTP 1.1 "hop-by-hop" features or headers, any equivalent features in HTTP 1.0, or any headers that would affect the persistence of the client's connection to the web server. Applications and middleware may, however, interrogate the environment for their presence and value. These features are the exclusive province of the server, and a server should consider it a fatal error for an application to attempt sending them, and raise an error if they are supplied as return values from an application in the headers structure.
 
 
 h2. Server / Gateway API
 
-bq. *Status:* Final draft.
-
-A WSGI server must:
+A WSGI 2 server must:
 
 # Invoke the application callable once for each request it receives from an HTTP client that is directed at the application.
 # Pass a single positional value to the application callable representing the request environment, described in detail in the "WSGI Environment":#wsgi-environment section.
 # Ensure that correct response headers are sent to the client. If the application omits a header required by the HTTP standard (or other relevant specifications that are in effect), the server must add it. E.g. the @Date@ and @Server@ headers.
 ## The server must not override values with the same name if they are emitted by the application.
+# Raise an exception if the application attempts to set HTTP 1.1 "hop-by-hop" or persistence headers, or equivalent headers in HTTP 1.0, as described above.
 # Encode unicode data (where returned by the application) using @ISO-8859-1@.
 # Ensure that line endings within the body are not altered.
 # Transmit body chunks to the client in an unbuffered fashion, completing the transmission of each set of bytes before requesting another one. (Applications should perform their own buffering.)
@@ -94,7 +93,8 @@ A WSGI server must:
 Additionally,
 
 # HTTP header names are case-insensitive, so be sure to take that into consideration when examining application-supplied headers.
-# The server may apply HTTP transfer encodings or perform other transformations for the purpose of implementing HTTP features such as byte-range transmission or chunked transfer.
+# The server may apply HTTP transfer encodings or perform other transformations for the purpose of implementing HTTP features such as chunked transfer.
+# The server must not attempt to handle byte range requests; the application can optimize this use case far more easily than a server.  (For example and application can generate the correct body length vs. generating the whole body and having the server buffer and slice it.)
 # Servers must not directly use any other attributes of the body iterable returned by the application.
 
 
