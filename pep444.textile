@@ -1,6 +1,6 @@
 |_>. PEP | 444 |
 |_>. Title | Python Web Server Gateway Interface v2.0 |
-|_/3^>. Authors | Alice Bevan-McGregor <"alice@gothcandy.com":mailto:> |
+|_/3^>. Authors | Alice Bevan-McGregor <"alice@gothcandy.com":mailto:alice@gothcandy.com> |
 | Chris McDonough <"chrism@plope.com":mailto:chrism@plope.com> |
 | Armin Ronacher <"armin.ronacher@active-4.com":mailto:armin.ronacher@active-4.com> |
 |_>. Discussions-To | Python Web-SIG <"web-sig@python.org":mailto:web-sig@python.org> |
