@@ -116,20 +116,16 @@ It is very important that these "safe extension" rules be followed by both serve
 
 h2. Middleware API
 
-bq. *Status:* Draft.<br>*Note:* Needs elaboration.
-
-Middleware callables play the role of a server with respect to the application they wrap, while also acting as an application with respect to the server they are called by. Middleware components can perform such functions as:
+Middleware plays the role of a server with respect to the application they wrap, while also acting as an application with respect to the server they are called by. Middleware components can perform such functions as:
 
 * Routing a request to different application objects based on the target URL, after rewriting the environ accordingly.
 * Allowing multiple applications to run side-by-side in the same process.
-* Load balancing and remote processing, by forwarding requests and responses over a network.
+* Load balancing and remote processing by forwarding requests and responses over a network.
 
-The presence of middleware in general is transparent to both the server and the application sides of the interface, and should require no special support. A user who desires to incorporate middleware into an application simply provides the middleware component to the server, as if it were an application, and configures the middleware component to invoke the application, as if the middleware component were a server. Of course, the "application" that the middleware wraps may in fact be another middleware component wrapping another application, and so on, creating what is referred to as a "middleware stack".
+The presence of middleware in general is transparent to both the server and the application sides of the interface, and must require no special support. A user who desires to incorporate middleware into an application simply provides the middleware component to the server, as if it were an application, and configures the middleware component to invoke the application, as if the middleware component were a server. Of course, the "application" that the middleware wraps may in fact be another middleware component wrapping another application, and so on, creating what is referred to as a "middleware stack".
 
 
 h2. Filter API
-
-bq. *Status:* Draft.<br>*Note:* Needs elaboration.
 
 A large amount of middleware only applies changes to the environment coming in from the server before reaching the application, or, conversely, only applies transformations to the data returned by the application. Additionally, middleware, by wrapping applications and other middleware in a recursive structure, is less efficient and harder to debug than a "flat" model. Filters fill the need for efficient ingress- or egress-only modifications.
 
@@ -139,6 +135,25 @@ Such "filters" can perform such functions as:
 * Perform content post-processing, such as applying XSL stylesheets or GZip compression.
 
 The filtering API may be implemented by WSGI2 servers, and filtering functionality can be added to non-supporting servers by utilizing a middleware layer which implements the filtering API.
+
+
+h3. Ingress Filters
+
+Ingress filters are called before the application (and middleware stack), may modify the request environment, and must:
+
+# Accept a single positional argument representing the WSGI environment.
+# Return @None@.
+
+
+h3. Egress Filters
+
+Egress filters are called after the application (and middleware stack), may modify the response, and must:
+
+# Accept four arguments: @environ@, @status@, @headers@, and @body@, where @environ@ is the request environment and @status@, @headers@, and @body@ are the values returned by the application.
+# Return a 3-tuple of (@status@, @headers@, and @body@) with the same restrictions as an application.
+
+There is no requirement for egress filters to return the same objects as those passed in.
+
 
 
 h2. Asynchronous Processing
