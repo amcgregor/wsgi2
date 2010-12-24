@@ -16,7 +16,7 @@ h1. Abstract
 This document specifies a proposed second-generation standard interface between web servers and Python 2.6+ and 3.1+ applications.
 
 
-h1. Rationale and Goals
+h1. Introduction
 
 This protocol specification is influenced heavily by the Web Services Gateway Interface (WSGI) 1.0 standard described in PEP 333[1], the extensions proposed in PEP 3333[2], and community discussion.  The high-level rationale for having any standard that allows Python-based web servers and applications to interoperate is outlined in PEP 333.  This document has been written to clarify potentially ambiguous language from PEP 333, define Python 3.X compatibility, and update it with improved methodologies.
 
