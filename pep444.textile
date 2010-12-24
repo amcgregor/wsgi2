@@ -78,6 +78,7 @@ The return value of the application must be a 3-tuple of @(status, headers, body
 # @status@, and the contents of @headers@ (both name and value) must not contain control characters including carriage returns or linefeeds.
 # @status@, @headers@, and the chunks yielded by the @body@ iterator should be returned as byte strings, though for implementations where native strings are unicode, native strings may be returned.  The server must encode unicode values using ISO-8859-1.
 # The amount of data yielded by the body iterable must not exceed the length specified by the @Content-Length@ response header, if defined.
+# The @body@ iterable *may* be a native string, instead of a native string wrapped in a list for the simple case, but this is *not recommended*.
 
 Applications and middleware must not alter HTTP/1.1 "hop-by-hop" features or headers, any equivalent features in HTTP/1.0, or any headers that would affect the persistence of the client's connection to the web server. Applications and middleware may interrogate the environment for their presence and value. These features are the exclusive province of the actual web server, and a server should consider it a fatal error for an application to attempt sending them, and raise an error if they are supplied as return values from an application in the headers structure. (For more specifics on "hop-by-hop" features and headers, please see the Other HTTP Features section below.)
 
@@ -264,10 +265,39 @@ h2. Functional Application Example
 
 bq. *Status:* TBD.<br>*Note:* Demonstrate a function-based "hello world" WSGI application.
 
+The following is a simple, function-based "hello world" example application, compatible with Python 2.x and 3.x.
+
+<pre><code>def hello(environ):
+    status = "200 OK"
+    body = "Hello world!"
+    
+    headers = [
+            ("Content-Type", "text/plain"),
+            ("Content-Length", str(len(body)))
+        ]
+    
+    return status, headers, [body]</code></pre>
+
 
 h2. Class Instance Application Example
 
 bq. *Status:* TBD.<br>*Note:* Demonstrate a class instance-based "hello world" WSGI application.
+
+The following is a simple, class-based "hello world" example application, compatible with Python 2.x and 3.x.
+
+<pre><code>class Hello(object):
+    def __call__(self, environ):
+        status = "200 OK"
+        body = "Hello world!"
+    
+        headers = [
+                ("Content-Type", "text/plain"),
+                ("Content-Length", str(len(body)))
+            ]
+    
+        return status, headers, [body]
+
+hello = Hello()</code></pre>
 
 
 h2. Middleware Example
