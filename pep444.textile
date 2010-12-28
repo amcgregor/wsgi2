@@ -175,7 +175,7 @@ h2. The WSGI Environment
 # For implementations where the native string is unicode, all CGI keys, and all CGI values other than @REQUEST_URI@, @SCRIPT_NAME@, @PATH_INFO@, @PARAMETERS@, and @QUERY_STRING@, must be encoded using ISO-8859-1.
 # The value for the @REQUEST_URI@ key must be a byte string.
 # The values for the @SCRIPT_NAME@, @PATH_INFO@, @PARAMETERS@, and @QUERY_STRING@ keys must be unicode strings. The encoding used must be stored in @wsgi.uri_encoding@ and default to UTF-8. The application developer may provide a different default. If conversion failed, ISO-8859-1 must be used.
-# The values for @SCRIPT_NAME@, @PARAMETERS@, and @PATH_INFO@ must be URL-decoded.
+# The values for @SCRIPT_NAME@ and @PATH_INFO@ must be URL-decoded.
 # The value for the @wsgi.uri_encoding@ key must be a native string.
 # The value matching the @wsgi.input@ key must produce byte strings.
 # The @read()@ and @readline()@ methods of @wsgi.input@ may optionally take a size hint. If no hint is given @read()@ reads until end of stream.
