@@ -2,10 +2,9 @@ PEP: 444
 Title: Python Web Server Gateway Interface v2.0
 Version: $Revision: 84850 $
 Last-Modified: $Date: 2010-09-16 12:13:52 -0400 (Thu, 16 Sep 2010) $
-Author: Alice Bevan-McGregor <alice@gothcandy.com>,
-        Chris McDonough <chrism@plope.com>,
-        Armin Ronacher <armin.ronacher@active-4.com>
-Discussions-To: Python Web-SIG <web-sig@python.org>
+Author: Alice Bevan-McGregor <"alice@gothcandy.com":mailto:alice@gothcandy.com>
+        Armin Ronacher <"armin.ronacher@active-4.com":mailto:armin.ronacher@active-4.com>
+Discussions-To: Python Web-SIG <"web-sig@python.org":mailto:web-sig@python.org>
 Status: Draft
 Type: Informational
 Content-Type: text/x-rst
@@ -15,202 +14,747 @@ Created: 19-Jul-2010
 Abstract
 ========
 
-This document specifies a proposed second-generation standard
-interface between web servers and Python web applications or
-frameworks.
+This document specifies a proposed second-generation standard interface
+between web servers and Python 2.6+ and 3.1+ applications.
+
+
+Introduction
+============
+
+This protocol specification is influenced heavily by the Web Services
+Gateway Interface (WSGI) 1.0 standard described in PEP 333 [1]_ , the
+extensions proposed in PEP 3333[2], and community discussion. The
+high-level rationale for having any standard that allows Python-based
+web servers and applications to interoperate is outlined in PEP 333.
+This document has been written to clarify potentially ambiguous language
+from PEP 333, define Python 3.X compatibility, and update it with
+improved methodologies.
+
+Applications and servers which are written to this specification are
+meant to work properly under Python versions greater than or equal to
+2.6, less than 3.0, and greater than or equal to 3.1. Neither an
+application nor a server that implements the WSGI 2 specification can be
+easily written which will work under Python 2 versions earlier than 2.6
+nor Python 3 versions earlier than 3.1.
+
+.. note::
+
+    Python 2.6 is the first Python version that supported an alias for
+    ``bytes`` and the ``b"foo"`` literal syntax. Byte strings are an
+    integral part of WSGI 2, thus Python 2.6 being the minimum version
+    supported. While developers may attempt to provide solutions for
+    earlier versions, such compatibility is not defined herein.
 
 
 Rationale and Goals
 ===================
 
-This protocol and specification is influenced heavily by the Web
-Services Gateway Interface (WSGI) 1.0 standard described in PEP 333
-[1]_ .  The high-level rationale for having any standard that allows
-Python-based web servers and applications to interoperate is outlined
-in PEP 333.  This document essentially uses PEP 333 as a template, and
-changes its wording in various places for the purpose of forming a
-different standard.
+.. note::
 
-Python currently boasts a wide variety of web application frameworks
-which use the WSGI 1.0 protocol.  However, due to changes in the
-language, the WSGI 1.0 protocol is not compatible with Python 3.  This
-specification describes a standardized WSGI-like protocol that lets
-Python 2.6+ and 3.1+ applications communicate with web servers.
+    This section to be written.
 
-Applications and servers which are written to this specification are
-meant to work properly under Python 2.6.X, Python 2.7.X and Python
-3.1+.  Neither an application nor a server that implements the WSGI2
-specification can be easily written which will work under Python 2
-versions earlier than 2.6 nor Python 3 versions earlier than 3.1.
+
+Definitions
+===========
+
+The key words *must*, *must not*, *required*, *shall*, *shall not*,
+*should*, *should not*, *recommended*, *may*, and *optional* in this
+document are to be interpreted as described in RFC 2119 [3]_ .
+
+This document utilizes several terms which need to be clearly defined:
+
+*Byte string*
+    The data format returned by socket read operations on a given
+    implementation. In both Python 2.X and 3.X CPython implementations
+    this is a literal *byte string*. For implementations that do not
+    have the concept of a *byte string*, this is a ``ISO-8859-1``
+    *unicode string* with allowable characters in the range ``\u0000````
+    through ``\u00FF`` inclusive.
+
+*Unicode string*
+    A series of Unicode characters.
+
+*Native string*
+    The primary string type for a given Python implementation. For
+    Python 2.X as implemented by CPython, this is a *byte string*. For
+    Python 3.X, this is a *unicode string*.
+
+*Application callable* or *application object*
+    Interchangeable terms representing "a function, a method, or an
+    instance with a ``__call__`` method".
+
+
+
+Differences from PEP 3333 / WSGI 1.0.1
+======================================
 
 .. note::
 
-   Whatever Python 3 version fixed http://bugs.python.org/issue4006 so
-   ``os.environ['foo']`` returns surrogates (ala PEP 383) when the
-   value of 'foo' cannot be decoded using the current locale instead
-   of failing with a KeyError is the *true* minimum Python 3 version.
-   In particular, however, Python 3.0 is not supported.
+    This section to be written.
 
-.. note::
-
-   Python 2.6 is the first Python version that supported an alias for
-   ``bytes`` and the ``b"foo"`` literal syntax.  This is why it is the
-   minimum version supported by WSGI2.
-
-Explicability and documentability are the main technical drivers for
-the decisions made within the standard.
-
-Change History
-==============
-
-2010-11-28
-----------
-
-- Changed references to ``Web3`` in the body of the document to refer
-  instead to ``WSGI2``, ``wsgi2``, or ``wsgi`` as appropriate.
-  For example, environment keys are now prefixed by ``wsgi.`` instead
-  of ``web3.``.
-- References to Web3 in the change log and commentary have been left
-  intact.
-- Added first draft of the WSGI2 filtering API.
-
-
-2010-09-16
-----------
-
-- First public release as PEP 444.
-
-2010-09-19
-----------
-
-- Removed all references to ``web3.async`` feature.  The specification
-  no longer attempts to provide any support for asynchronous
-  applications.
-
-- By popular Web-SIG demand, normalized ordering of application
-  callable return tuple values to ``(status, headers, body)``.
-  Previously the specification had suggested ``(body, status,
-  headers)``, although several errors in the spec ordered them as
-  ``(status, headers, body)`` anyway.
-
-- This statement was removed from the "Differences from WSGI" section:
-  "Filelike objects passed to a "file_wrapper" must have an
-  ``__iter__`` which returns bytes (never text)."  Web3 does not
-  support an analogue of ``wsgi.file_wrapper`` at all.
-
-- Added subsections to "Points of Contention" section: "Odict Return
-  Values", "Retrieving 'The Original Application' From A Middleware
-  Stack", "Removal of ``file_wrapper`` Functionality", Streaming
-  Uploads via ``Transfer-Encoding``, Supporting ``Connection: close``
-  Header by Apps and Middleware.
-
-- Modified the "Long Response Headers" subsection of the "Points of
-  Contention" section: Robert Brewer indicates that applications
-  should never need to emit folded or encoded versions of headers.
-
-- Various duplicated text was removed.
-
-- Added the following note to the Rationale and Goals section: "If the
-  PEP is accepted, and the Web-SIG community agrees, we may yet
-  retitle the spec as 'WSGI2', with attendant changes to environ key
-  names.".
-
-- Removed references to ``web3.path_info`` and ``web3.script_name``.
-
-- Added ``web3.path_requoted`` flag, indicating that ``PATH_INFO`` and
-  ``SCRIPT_NAME`` have been requoted (as from dequoted CGI values).
-
-- ``PATH_INFO`` and ``SCRIPT_NAME`` are now assumed to be
-  non-url-decoded (%2F and other hex-escaped characters intact).
-
-Differences from WSGI 1
-=======================
-
-- The ``wsgi.version`` environment variable is now ``(2, 0)``.
-
-- All values present as environment dictionary *values* are explicitly
-  *bytes* instances instead of native strings.  (Environment *keys*
-  however are native strings, always ``str`` regardless of
-  platform).
-
-- All values returned by an application must be bytes instances,
-  including status code, header names and values, and the body.
-
-- Wherever WSGI 1.0 referred to an ``app_iter``, this specification
-  refers to a ``body``.
-
-- No ``start_response()`` callback (and therefore no ``write()``
-  callable nor ``exc_info`` data).
-
-- The ``readline()`` function of ``wsgi.input`` must support a size
-  hint parameter.
-
-- The ``read()`` function of ``wsgi.input`` must be length delimited.
-  A call without a size argument must not read more than the content
-  length header specifies.  In case a content length header is absent
-  the stream must not return anything on read.  It must never request
-  more data than specified from the client.
-
-- This requirement was removed: "middleware components **must not**
-  block iteration waiting for multiple values from an application
-  iterable.  If the middleware needs to accumulate more data from the
-  application before it can produce any output, it **must** yield an
-  empty string."  (i.e. no "Middleware Handling of Block Boundaries")
-  Rationale: this proposal does not support asynchronous applications.
-
-- ``wsgi.file_wrapper`` is not supported.
-
-- ``QUERY_STRING``, ``SCRIPT_NAME``, ``PATH_INFO`` values required to
-  be placed in environ by server (each as the empty bytes instance if
-  no associated value is received in the HTTP request).
-
-- ``PATH_INFO`` and ``SCRIPT_NAME`` are now assumed to be
-  non-url-decoded (%2F and other hex-escaped characters intact).
-
-- ``SERVER_PORT`` must be a bytes instance (not an integer).
-
-- The server must not inject an additional ``Content-Length`` header
-  by guessing the length from the response iterable.  This must be set
-  by the application itself in all situations.
 
 Specification Overview
 ======================
 
-The WSGI2 interface has two sides: the "server" or "gateway" side, and
-the "application" or "framework" side.  The server side invokes a
-callable object that is provided by the application side.  The
-specifics of how that object is provided are up to the server or
-gateway.  It is assumed that some servers or gateways will require an
-application's deployer to write a short script to create an instance
-of the server or gateway, and supply it with the application object.
-Other servers and gateways may use configuration files or other
-mechanisms to specify where an application object should be imported
-from or otherwise obtained.
+WSGI defines a conversation held between two parties, optionally with
+intermediaries that understand both sides of the conversation. This
+conversation is between the "server" (or "gateway", hereafter referred
+to simply as server) and the "application" (or "framework", hereafter
+referred to simply as application) with "middleware" optionally between
+them. A WSGI 2 server prepares an environment based on a request and
+invokes a callable object (the application) using the API defined
+herein; the result of the invocation is then used as the response sent
+back to the client.
 
-In addition to "pure" servers/gateways and applications/frameworks, it
-is also possible to create "middleware" components that implement both
-sides of this specification.  Such components act as an application to
-their containing server, and as a server to a contained application,
-and can be used to provide extended APIs, content transformation,
-navigation, and other useful functions.
+The specifics of how the application callable is provided to the server
+is left as an implementation detail of the server and is outside the
+scope of this document. It is assumed that some servers will require an
+application deployer to write a short script to create an instance of
+the server, and then supply it with the application object. Other
+servers may use configuration files or other mechanisms to specify
+where an application object should be imported from or otherwise
+obtained.
 
-A third form of application extension, beyond middleware, is described
-in this document.  "Filters" are similar to middleware, though instead
-of wrapping an application in multiple layers, recursively descending
-from server through to application and returning in the opposite
-direction, filters provide a mechanism to alter the request
-environment before being passed to the application/middlware stack,
-and a mechanism for altering the response returned by the application/
-middleware stack.
+In addition to "pure" servers and applications, it is also possible to
+create "middleware" components that implement both sides of this
+specification. Such components act as an application to their caller and
+as a server to the wrapped application. These can be used to provide
+extended APIs, content transformation, navigation, and other useful
+functions. This is similar to the decorator functionality in Python,
+though middleware must conform to the protocol defined in this document.
 
-Throughout this specification, we will use the term "application
-callable" to mean "a function, a method, or an instance with a
-``__call__`` method".  It is up to the server, gateway, or application
-implementing the application callable to choose the appropriate
-implementation technique for their needs.  Conversely, a server,
-gateway, or application that is invoking a callable **must not** have
-any dependency on what kind of callable was provided to it.
-Application callables are only to be called, not introspected upon.
+A third (optional) form of extension, filters, are described in this
+document. Filters are similar to middleware, though instead of wrapping
+an application in multiple layers (recursively descending from server
+through to application and returning in the opposite direction) filters
+provide a mechanism to alter the request environment before being passed
+to the application/middleware stack and a mechanism for altering the
+response returned by the application/middleware stack. Filters should
+not be constructed that are co-dependant: if a filter needs to alter the
+request _and_ response, it should be implemented as middleware.
+
+It is up to the application implementor to choose the appropriate
+implementation technique for their needs. Conversely, a server that is
+invoking a callable must not have any dependency on what kind of
+callable was provided to it. Application callables are only to be
+called, not introspected.
+
+.. note::
+
+    Although we refer to it as an "application", this should not be
+    construed to mean that application developers will use WSGI 2 as a
+    web programming API. It is assumed that application developers will
+    continue to use existing, high-level framework services to develop
+    their applications. WSGI 2 is a tool for framework and server
+    developers, and is not intended to directly support application
+    developers.
+
+
+Application / Framework API
+===========================
+
+An application is any function, method, or instance with a ``__call__``
+method. Applications must:
+
+1. Be able to be invoked more than once. If this can not be guaranteed
+   by the application implementation, it must be wrapped in a function
+   that creates a new instance on each call.
+
+2. Accept a single positional argument which must be an instance of a
+   base Python dictionary containing what is referred to as the WSGI
+   environment. The contents of this dictionary are fully described in
+   the WSGI Environment section.
+
+3. Return a 3-tuple of ``(status, headers, body)`` where:
+
+    a. ``status`` must contain the HTTP status code and reason phrase of
+       the response. The status code and reason must be present, in that
+       order, separated by a single space. (See RFC 2616, Section 6.1.1
+       for more information.)
+    
+     b. ``headers`` must be a standard Python list containing 2-tuples
+        of ``(name, value)`` pairs representing the HTTP headers of the
+        response. Each header name must represent a valid HTTP header
+        field name (as defined by RFC 2616, Section 4.2) without
+        trailing colon or other punctuation.
+        
+     c. ``body`` must be an iterable representing the HTTP response
+        body.
+    
+     d. ``status`` and the name of each header present in ``headers``
+        must not have leading or trailing whitespace.
+    
+     e. ``status``, and the contents of ``headers`` (both name and
+        value) must not contain control characters including carriage
+        returns or linefeeds.
+    
+     f. ``status``, ``headers``, and the chunks yielded by the ``body``
+        iterator should be returned as byte strings, though for
+        implementations where native strings are unicode, native strings
+        may be returned. The server must encode unicode values using
+        ``ISO-8859-1``.
+    
+     g. The amount of data yielded by the body iterable must not exceed
+        the length specified by the ``Content-Length`` response header,
+        if defined.
+    
+     h. The ``body`` iterable *may* be a native string, instead of a
+        native string wrapped in a list for the simple case, but this is
+        *not recommended*.
+
+Additionally, applications and middleware must not alter HTTP 1.1
+"hop-by-hop" features or headers, any equivalent features in HTTP 1.0,
+or any headers that would affect the persistence of the client's
+connection to the web server. Applications and middleware may, however,
+interrogate the environment for their presence and value. These features
+are the exclusive province of the server, and a server should consider
+it a fatal error for an application to attempt sending them, and raise
+an error if they are supplied as return values from an application in
+the headers structure.
+
+
+Server / Gateway API
+====================
+
+A WSGI 2 server must:
+
+1. Invoke the application callable once for each request it receives
+   from an HTTP client that is directed at the application.
+
+2. Pass a single positional value to the application callable
+   representing the request environment, described in detail in the WSGI
+   Environment section.
+
+3. Ensure that correct response headers are sent to the client. If the
+   application omits a header required by the HTTP standard (or other
+   relevant specifications that are in effect), the server must add it.
+   E.g. the ``Date`` and ``Server`` headers.
+
+    a. The server must not override values with the same name if they
+       are emitted by the application.
+
+4. Raise an exception if the application attempts to set HTTP 1.1
+   "hop-by-hop" or persistence headers, or equivalent headers in HTTP
+   1.0, as described above.
+
+5. Encode unicode data (where returned by the application) using
+   ``ISO-8859-1``.
+
+6. Ensure that line endings within the body are not altered.
+
+7. Transmit body chunks to the client in an unbuffered fashion,
+   completing the transmission of each set of bytes before requesting
+   another one. (Applications should perform their own buffering.)
+
+8. Call the ``close()`` method of the body returned by the application,
+   if present, upon completion of the current request. This should be
+   called regardless of the termination status of the request. This is
+   to support resource release by the application and is intended to
+   complement PEP 325's generator support, and other common iterables
+   with close() methods.
+
+9. Support the HTTP 1.1 specification where such support is made
+   possible by the underlying transport channel, including full URL
+   ``REQUEST_URI``, pipelining of requests, chunked transfer, and any
+   other HTTP 1.1 features mandated in the relevant RFC.
+
+Additionally,
+
+1. HTTP header names are case-insensitive, so be sure to take that into
+   consideration when examining application-supplied headers.
+
+2. The server may apply HTTP transfer encodings or perform other
+   transformations for the purpose of implementing HTTP features such as
+   chunked transfer.
+
+3. The server must not attempt to handle byte range requests; the
+   application can optimize this use case far more easily than a server.
+   (For example an application can generate the correct body length vs.
+   generating the whole body and having the server buffer and slice it.)
+
+4. Servers must not directly use any other attributes of the body
+   iterable returned by the application.
+
+
+Server Extension APIs
+---------------------
+
+Some server authors may wish to expose more advanced APIs that
+application authors can use for specialized purposes. For example, a
+server based on mod_python might wish to expose part of the Apache API
+as a WSGI 2 extension.
+
+In the simplest case, this requires nothing more than defining a key in
+the request environment, such as ``mod_python.some_api``. But, in many
+cases, the possible presence of middleware can make this difficult. For
+example, an API that offers access to the same HTTP headers that are
+found in environment variables might return different data if the
+environment has been modified by middleware.
+
+In general, any extension API that duplicates, supplants, or bypasses
+some portion of WSGI 2 functionality runs the risk of being incompatible
+with middleware components. Server developers should not assume that
+nobody will use middleware, because many framework developers
+specifically organize their frameworks to function almost entirely as
+middleware of various kinds.
+
+So, to provide maximum compatibility, servers that provide extension
+APIs that replace some WSGI 2 functionality must design those APIs so
+that they are invoked using the portion of the API that they replace.
+For example, an extension API to access HTTP request headers must
+require the application to pass in its current environment, so that the
+server may verify that HTTP headers accessible via the API have not been
+altered by middleware. If the extension API cannot guarantee that it
+will always agree with the environment about the contents of HTTP
+headers, it must refuse service to the application, e.g. by raising an
+error, returning ``None`` instead of a header collection, or whatever is
+appropriate to the API.
+
+These guidelines also apply to middleware that adds information such as
+parsed cookies, form variables, sessions, and the like to the
+environment. Specifically, such middleware should provide these features
+as functions which operate on the environment, rather than simply
+stuffing values into the environment. This helps ensure that information
+is calculated from the environment after any middleware has done any URL
+rewrites or other modifications.
+
+It is very important that these "safe extension" rules be followed by
+both server and middleware developers, in order to avoid a future in
+which middleware developers are forced to delete any and all extension
+APIs from the environment to ensure that their mediation isn't being
+bypassed by applications using those extensions!
+
+
+Middleware API
+==============
+
+Middleware plays the role of a server with respect to the application
+they wrap, while also acting as an application with respect to the
+server they are called by. Middleware components can perform such
+functions as:
+
+* Routing a request to different application objects based on the target
+  URL, after rewriting the environment accordingly.
+
+* Allowing multiple applications to run side-by-side in the same
+  process.
+
+* Load balancing and remote processing by forwarding requests and
+  responses over a network.
+
+The presence of middleware in general is transparent to both the server
+and the application sides of the interface, and must require no special
+support. A developer who desires to incorporate middleware into an
+application simply provides the middleware component to the server, as
+if it were an application, and configures the middleware component to
+invoke the application, as if the middleware component were a server. Of
+course, the "application" that the middleware wraps may in fact be
+another middleware component wrapping another application, and so on,
+creating what is referred to as a "middleware stack".
+
+.. note::
+
+    Care must be taken when modifying the returned body. If the amount
+    of data returned will differ and a ``Content-Length`` header is
+    present, it must be updated to reflect the true length of the body
+    returned by the middleware.
+
+
+Filter API
+==========
+
+.. note::
+
+    There is strong contention on the mailing list whether this should
+    be included in the PEP.
+
+A large amount of middleware only applies changes to the environment
+coming in from the server before reaching the application, or,
+conversely, only applies transformations to the data returned by the
+application. Additionally, middleware, by wrapping applications and
+other middleware in a recursive structure, is less efficient and harder
+to debug than a "flat" model. Filters fill the need for efficient
+ingress- or egress-only modifications.
+
+"Filters" can perform such functions as:
+
+* Perform additional processing on the incoming request, such as
+  transforming HTTP GET arguments.
+
+* Perform content post-processing, such as applying XSL stylesheets or
+  GZip compression.
+
+* Calculate and add optional HTTP headers such as ``Content-MD5``.
+
+The filtering API may be implemented by WSGI 2 servers, and filtering
+functionality can be added to non-supporting servers by utilizing a
+middleware layer which implements the filtering API.
+
+
+Ingress Filters
+---------------
+
+Ingress filters are called before the application (and middleware
+stack), may modify the request environment, and must:
+
+1. Accept a single positional argument representing the WSGI
+   environment.
+
+2. Return ``None``.
+
+
+Egress Filters
+--------------
+
+Egress filters are called after the application (and middleware stack)
+only if an unhandled exception has not been raised, may modify the
+response, and must:
+
+1. Accept four positional arguments: ``environ``, ``status``,
+   ``headers``, and ``body``, where ``environ`` is the request
+   environment and ``status``, ``headers``, and ``body`` are the values
+   returned by the application.
+
+2. Return a 3-tuple of (``status``, ``headers``, and ``body``) with the
+   same restrictions as an application.
+
+There is no requirement for egress filters to return the same objects as
+those passed in.
+
+.. note::
+
+    As per middleware, care must be taken when modifying the returned
+    body.
+
+
+Asynchronous Processing
+=======================
+
+.. note::
+
+    This section to be written.
+
+
+Implementation Details
+======================
+
+The WSGI Environment
+--------------------
+
+1. All keys in the environment dictionary must be native strings.
+
+2. The value matching the ``'wsgi.url_scheme'`` key must be a native
+   string.
+
+3. For implementations where the native string is unicode, all CGI keys,
+   and all CGI values other than ``REQUEST_URI``, ``SCRIPT_NAME``,
+   ``PATH_INFO``, ``PARAMETERS``, and ``QUERY_STRING``, must be encoded
+   using ``ISO-8859-1``.
+
+4. The value for the ``REQUEST_URI`` key must be a byte string.
+
+5. The values for the ``SCRIPT_NAME``, ``PATH_INFO``, ``PARAMETERS``,
+   and ``QUERY_STRING`` keys must be unicode strings. The encoding used
+   must be stored in ``wsgi.uri_encoding`` and default to ``UTF-8``. The
+   application developer may provide a different default. If conversion
+   failed, ``ISO-8859-1`` must be used.
+
+6. The values for ``SCRIPT_NAME`` and ``PATH_INFO`` must be URL-decoded.
+
+7. The value for the ``wsgi.uri_encoding`` key must be a native string.
+
+8. The value matching the ``wsgi.input`` key must produce byte strings.
+
+9. The ``read()`` and ``readline()`` methods of ``wsgi.input`` may
+   optionally take a size hint. If no hint is given ``read()`` reads
+   until end of stream.
+
+10. Read operations across ``wsgi.input`` must return an empty string as
+    an end of stream marker.
+
+The following CGI variables must be present.
+
+|_<. Key |_<. Description |
+|^. ``REQUEST_METHOD`` | The HTTP request method, such as "GET" or "POST". |
+|^. ``SCRIPT_NAME`` | The initial portion of the request URL's "path" that corresponds to the application object, so that the application knows its virtual "location". This may be an empty string if the application corresponds to the "root" of the server. |
+|^. ``PATH_INFO`` | The remainder of the request URL's "path", designating the virtual "location" of the request's target within the application. |
+|^. ``QUERY_STRING`` | The portion of the request URL that follows the ``"?"``, if any, or an empty string. |
+|^. ``PARAMETERS`` | The portion of the request URL that follows the ``";"``, if any, or an empty string. |
+|^. ``SERVER_NAME``<br>``SERVER_PORT`` | When combined with ``SCRIPT_NAME`` and ``PATH_INFO`` these variables can be used to complete the URL. Note, however, that ``HTTP_HOST``, if present, should be used in preference to ``SERVER_NAME`` for reconstructing the request URL. See the URL Reconstruction section below for more detail. |
+|^. ``SERVER_PROTOCOL`` | The version of the protocol the client used to send the request. Typically this will be something like ``"HTTP/1.0"`` or ``"HTTP/1.1"`` and may be used by the application to determine how to treat any HTTP request headers. |
+
+The following CGI values may present be in the environment.
+
+|_<. Key |_<. Description |
+|^. ``CONTENT_TYPE`` | The contents of the ``Content-Type`` header in the HTTP request. |
+|^. ``CONTENT_LENGTH`` | The contents of the ``Content-Length`` header in the HTTP request. |
+|^. ``HTTP_*`` Variables | Variables corresponding to the client-supplied HTTP request headers. The presence or absence of these variables should correspond with the presence or absence of the appropriate HTTP header in the request. |
+
+A server should attempt to provide as many other CGI variables as are
+applicable. In addition, if SSL is in use, the server should also
+provide as many of the SSL environment variables [5] as are applicable,
+such as ``HTTPS=on`` and ``SSL_PROTOCOL``. Note, however, that an
+application that uses any CGI variables other than the ones listed above
+are necessarily non-portable to web servers that do not support the
+relevant extensions. (For example, web servers that do not publish files
+will not be able to provide a meaningful ``DOCUMENT_ROOT`` or
+``PATH_TRANSLATED``.)
+
+A WSGI 2 compliant server should document the variables it provides,
+along with their definitions, as appropriate. Applications must check
+for the presence of any server-specific variables they require, and have
+a fallback plan in the event such a variable is absent.
+
+In addition to the CGI-defined variables, the environment dictionary may
+also contain arbitrary operating-system "environment variables", and
+must contain the following WSGI 2 defined variables:
+
+|_<. Key |_<. Description |
+|^. ``wsgi.version`` | The tuple ``(2, 0)``, representing WSGI version 2.0. |
+|^. ``wsgi.url_scheme`` | A value representing the "scheme" portion of the URL at which the application is being invoked. Normally, this will have the value ``"http"`` or ``"https"``, as appropriate. |
+|^. ``wsgi.input`` | An input stream (file-like object) from which bytes constituting the HTTP request body can be read. |
+|^. ``wsgi.errors`` | An output stream (file-like object) to which error output text can be written for the purpose of recording program or other errors in a standardized and possibly centralized location. |
+|^. ``wsgi.multithread`` | This value must evaluate true if the application object may be simultaneously invoked by another thread in the same process, and should evaluate false otherwise. |
+|^. ``wsgi.multiprocess`` | This value must evaluate true if an equivalent application object may be simultaneously invoked by another process, and should evaluate false otherwise. |
+|^. ``wsgi.run_once`` | This value must evaluate true if the server or gateway expects (but does not guarantee) that the application will only be invoked this one time during the life of its containing process. Normally, this will only be true for a gateway based on CGI (or similar). |
+|^. ``wsgi.async`` | This value must evaluate to true if the server is capable of handling asynchronous processing tokens as defined in the Asynchronous Processing chapter. |
+
+The following environment variables may be present if supported by the
+server:
+
+|_<. Key |_<. Description |
+|^. ``wsgi.script_name`` | The non-URL-decoded SCRIPT_NAME value. This is the original URL-encoded value derived from the request URI. |
+|^. ``web3.path_info`` | The non-URL-decoded PATH_INFO value. This is the original URL-encoded value derived from the request URI. |
+
+.. note::
+
+    Through a historical inequity, by virtue of the CGI specification,
+    ``SCRIPT_NAME`` and ``PATH_INFO`` are present within the environment
+    as an already URL-decoded string.
+
+Finally, the environment dictionary may also contain server-defined
+variables. These variables must have names which are composed of only
+lower-case letters, numbers, dots, and underscores, and should be
+prefixed with a name that is unique to the defining server or gateway.
+For example, ``mod_wsgi`` might define variables with names like
+``mod_wsgi.some_variable``.
+
+
+Input Stream
+------------
+
+The input stream (``wsgi.input``) provided by the server must support
+the following methods:
+
+|_. Method|_. Notes|
+|``read(size)``|1, 4|
+|``readline([size])``|1, 2, 4|
+|``readlines([size])``|1, 3, 5|
+|``__iter__()``|1, 6|
+
+The semantics of each method are as documented in the Python Library
+Reference, except for these notes as listed in the table above:
+
+# The server must honor the client's specified ``Content-Length``, if present, and must:
+## Truncate read requests that would exceed the request body length.
+## After consuming the request body, simulate an end-of-file condition (by returning an empty string) if the application attempts further reads.
+# The implementation must support the optional size argument to ``readline()``.
+# The application is free to not supply a size argument to ``readlines()``, and the server or gateway is free to ignore the value of any supplied size argument.
+# The ``read``, ``readline`` and ``__iter__`` methods must return a bytes instance.
+# The ``readlines()`` method must return a sequence which contains instances of bytes.
+# The ``__iter__`` method must return an iterator yielding instances of bytes.
+
+The methods listed in the table above must be supported by all servers conforming to this specification. Applications conforming to this specification must not use any other methods or attributes of the input object. In particular, applications must not attempt to close this stream, even if it possesses a close() method.
+
+
+h2. Error Stream
+
+This should be a "text mode" stream; i.e., applications should use "\n" as a line ending, and assume that it will be converted to the correct line ending by the server.
+
+For many servers, ``wsgi.errors`` will be the server's main error log. Alternatively, this may be ``sys.stderr``, or a log file of some sort. The server's documentation should include an explanation of how to configure this or where to find the recorded output. A server may supply different error streams to different applications, if this is desired.
+
+*Note:* It is highly recommended for servers to implement ``wsgi.errors`` as a wrapper around the standard Python logging module using the ``wsgi.errors`` handler name. This will allow for maximum configurability using standard Python interfaces versus server-specific configuration directives. In addition, there are many different ways to route the Python logging module, including STDERR, on-disk log file, over the network, and via e-mail or instant messenger.
+
+The error stream (``wsgi.errors``) provided by the server must support the following methods:
+
+|_. Method|_. Notes|
+|``flush()``|1|
+|``write(str)``|2|
+|``writelines(seq)``|2|
+
+The semantics of each method are as documented in the Python Library Reference, except for these notes as listed in the table above:
+
+# Since the errors stream may not be rewound, servers and gateways are free to forward write operations immediately, without buffering. In this case, the flush() method may be a no-op. Portable applications, however, cannot assume that output is unbuffered or that flush() is a no-op. They must call flush() if they need to ensure that output has in fact been written. (For example, to minimize intermingling of data from multiple processes writing to the same error log.)
+# The write() method must accept a native string argument.
+# The writelines() method must accept a sequence argument that consists entirely of native strings.
+
+The methods listed in the table above must be supported by all servers conforming to this specification. Applications conforming to this specification must not use any other methods or attributes of the ``wsgi.errors`` object. In particular, applications must not attempt to close this stream, even if it possesses a close() method.
+
+
+h2. HTTP Features
+
+Servers should:
+
+# Be conservative in their implementation and generally allow applications complete control over their output.
+# Only make changes that do not alter the effective semantics of the application's response.
+
+In a sense, a server should consider itself to be like an HTTP "gateway server", with the application being an HTTP "origin server". (See RFC 2616, section 1.3, for the definition of these terms.)
+
+However, because WSGI 2 servers and applications do not communicate via HTTP, what RFC 2616 calls "hop-by-hop" headers do not apply to WSGI 2 internal communications.
+
+Applications must not:
+
+# Generate any "hop-by-hop" headers[4].
+# Attempt to use HTTP features that would require them to generate such headers.
+# Rely on the content of any incoming "hop-by-hop" headers in the environment dictionary.
+# Apply a transport encoding to its response body.
+
+Servers must:
+
+# Handle any supported inbound "hop-by-hop" headers on their own.
+# Provide transparent support for HTTP 1.1 Expect/Continue. This can be accomplished in one of two ways:
+## Respond to requests containing an ``"Expect: 100-continue"`` request with an immediate ``"100 Continue"`` response, and proceed normally.
+## Proceed with the request normally, but provide the application with a ``wsgi.input`` stream that will send the ``"100 Continue"`` response if/when the application first attempts to read from the input stream. The read request must then remain blocked until the client responds.
+# Provide transparent support for chunked transfer encoding of request bodies.
+# Provide transparent support for chunked transfer encoding of response bodies if:
+## The ``Content-Length`` header is missing from the response, or;
+## The ``Transfer-Encoding`` response header is set to ``"chunked"``, even if a ``Content-Length`` header is provided.
+
+Note that these behavior restrictions do not apply for HTTP 1.0 requests or for requests that are not directed to an application object. Not defining a ``Content-Length`` for responses to HTTP 1.0 requests must still be treated as an error condition by the server, for example.
+
+For more information on HTTP 1.1 Expect/Continue, see RFC 2616, sections 8.2.3 and 10.1.1. For more information on chunked transfer encoding, see RFC 2616, section 3.6.1.
+
+Servers must not, and applications should:
+
+# Handle cache validation via the ``If-None-Match`` and ``If-Modified-Since`` request headers and the ``Last-Modified`` and ``ETag@ response headers.
+# Handle byte range transmission of the application's response.
+
+Similarly, a server may re-encode or transport-encode an application's response, but the application should use a suitable content encoding on its own.
+
+Note that these restrictions on applications do not necessarily mean that every application must re-implement every HTTP feature; many HTTP features can be partially or fully implemented by middleware or filter components, thus freeing both server and application authors from implementing the same features over and over again.
+
+
+
+h1. Python Cross-Version Compatibility
+
+bq. *Status:* TBD.
+
+
+h1. Rationale
+
+bq. *Status:* TBD.
+
+
+
+h1. Examples
+
+h2. Functional Application Example
+
+bq. *Status:* TBD.<br>*Note:* Demonstrate a function-based "hello world" WSGI application.
+
+The following is a simple, function-based "hello world" example application, compatible with Python 2.x and 3.x.
+
+<pre><code>def hello(environ):
+    status = "200 OK"
+    body = "Hello world!"
+    
+    headers = [
+            ("Content-Type", "text/plain"),
+            ("Content-Length", str(len(body)))
+        ]
+    
+    return status, headers, [body]</code></pre>
+
+
+h2. Class Instance Application Example
+
+bq. *Status:* TBD.<br>*Note:* Demonstrate a class instance-based "hello world" WSGI application.
+
+The following is a simple, class-based "hello world" example application, compatible with Python 2.x and 3.x.
+
+<pre><code>class Hello(object):
+    def __call__(self, environ):
+        status = "200 OK"
+        body = "Hello world!"
+    
+        headers = [
+                ("Content-Type", "text/plain"),
+                ("Content-Length", str(len(body)))
+            ]
+    
+        return status, headers, [body]
+
+hello = Hello()</code></pre>
+
+
+h2. Middleware Example
+
+bq. *Status:* TBD.<br>*Note:* Demonstrate simple (and robust) benchmarking middleware.
+
+
+h2. Filtering Middleware Example
+
+bq. *Status:* TBD.<br>*Note:* Demonstrate the filtering API as middleware.
+
+
+h2. CGI Server Example
+
+bq. *Status:* TBD.<br>*Note:* Demonstrate a basic CGI server that conforms to this standard.
+
+
+
+h1. References
+
+bq. *Status:* Draft.<br>*Note:* Needs more references, esp. to community discussion.
+
+fn1. PEP 333: Python Web Services Gateway Interface v1.0 ("http://www.python.org/dev/peps/pep-0333/":http://www.python.org/dev/peps/pep-0333/)
+
+fn2. PEP 3333: Python Web Services Gateway Interface v1.0.1 ("http://www.python.org/dev/peps/pep-3333/":http://www.python.org/dev/peps/pep-3333/)
+
+fn3. RFC 2119: Key words for use in RFCs to Indicate Requirement Levels ("http://www.rfc-editor.org/rfc/rfc2119.txt":http://www.rfc-editor.org/rfc/rfc2119.txt)
+
+fn4. "End-to-end and Hop-by-hop Headers" -- HTTP/1.1, Section 13.5.1 ("http://www.w3.org/Protocols/rfc2616/rfc2616-sec13.html#sec13.5.1":http://www.w3.org/Protocols/rfc2616/rfc2616-sec13.html#sec13.5.1)
+
+
+h1. Copyright
+
+This document has been placed in the public domain.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 The Application/Framework Side
@@ -229,10 +773,10 @@ function that creates a new instance on each call.
 .. note::
 
    Although we refer to it as an "application" object, this should not
-   be construed to mean that application developers will use WSGI2 as
+   be construed to mean that application developers will use WSGI 2 as
    a web programming API.  It is assumed that application developers
    will continue to use existing, high-level framework services to
-   develop their applications.  WSGI2 is a tool for framework and
+   develop their applications.  WSGI 2 is a tool for framework and
    server developers, and is not intended to directly support
    application developers.)
 
@@ -410,7 +954,7 @@ Such "filters" can perform such functions as:
 * Perform content postprocessing, such as applying XSL stylesheets or
   GZip compression.
 
-The filtering API **may** be implemented by WSGI2 servers, and
+The filtering API **may** be implemented by WSGI 2 servers, and
 filtering functionality can be added to non-supporting servers by
 utilizing a middleware layer which implements the filtering API::
 
@@ -441,7 +985,7 @@ implementation detail for the server or middleware.
 
 Ingress filters **must** accept a single positional argument with the
 same API as an application, illustrated above.  Ingress filters may
-then modify the WSGI2 environment, and **must** return ``None``.
+then modify the WSGI 2 environment, and **must** return ``None``.
 
 Egress filters **must** accept three positional arguments conforming
 to the values returned by an application, illustrated above.  An
@@ -482,7 +1026,7 @@ environment variables.  This object **must** be a builtin Python
 dictionary (*not* a subclass, ``UserDict`` or other dictionary
 emulation), and the application is allowed to modify the dictionary in
 any way it desires.  The dictionary must also include certain
-WSGI2-required variables (described in a later section), and may also
+WSGI 2-required variables (described in a later section), and may also
 include server-specific extension variables, named according to a
 convention that will be described below.
 
@@ -562,7 +1106,7 @@ string.  Each value is a bytes instance.
    segment separated by the slash character (``/``).  Unlike CGI, it is
    assumed that segment values containing URL-encoded characters will
    *not* be unquoted: URL-quoted values such as ``%2F`` *will* remain
-   present in ``SCRIPT_NAME`` provided to a WSGI2 application.  If a
+   present in ``SCRIPT_NAME`` provided to a WSGI 2 application.  If a
    server must reconstruct ``SCRIPT_NAME`` to provide a quoted value,
    it should do so as best it can and set the ``wsgi.path_requoted``
    environment value to ``True``.
@@ -576,7 +1120,7 @@ string.  Each value is a bytes instance.
   separated by the slash character (``/``).  Unlike CGI, it is assumed
   that segment values containing URL-encoded characters will *not* be
   unquoted at all: URL-quoted values such as ``%2F`` *will* remain
-  present in ``PATH_INFO`` provided to a WSGI2 application.  If a
+  present in ``PATH_INFO`` provided to a WSGI 2 application.  If a
   server must reconstruct ``PATH_INFO`` to provide a quoted value, it
   should do so as best it can and set the ``wsgi.path_requoted``
   environment value to ``True``.
@@ -603,7 +1147,7 @@ string.  Each value is a bytes instance.
   used in the server's response.  However, for compatibility with CGI
   we have to keep the existing name.)
 
-The following CGI values **may** present be in the WSGI2 environment.
+The following CGI values **may** present be in the WSGI 2 environment.
 Each key is a native string.  Each value is a bytes instances.
 
 ``CONTENT_TYPE``
@@ -630,7 +1174,7 @@ extensions.  (For example, web servers that do not publish files will
 not be able to provide a meaningful ``DOCUMENT_ROOT`` or
 ``PATH_TRANSLATED``.)
 
-A WSGI2-compliant server or gateway **should** document what variables
+A WSGI 2-compliant server or gateway **should** document what variables
 it provides, along with their definitions as appropriate.
 Applications **should** check for the presence of any variables they
 require, and have a fallback plan in the event such a variable is
@@ -648,7 +1192,7 @@ of type ``str``).
 
 In addition to the CGI-defined variables, the ``environ`` dictionary
 **may** also contain arbitrary operating-system "environment
-variables", and **must** contain the following WSGI2-defined
+variables", and **must** contain the following WSGI 2-defined
 variables.
 
 =====================  ===============================================
@@ -725,8 +1269,8 @@ Finally, the ``environ`` dictionary may also contain server-defined
 variables.  These variables should have names which are native
 strings, composed of only lower-case letters, numbers, dots, and
 underscores, and should be prefixed with a name that is unique to the
-defining server or gateway.  For example, ``mod_wsgi2`` might define
-variables with names like ``mod_wsgi2.some_variable``.
+defining server or gateway.  For example, ``mod_WSGI 2`` might define
+variables with names like ``mod_WSGI 2.some_variable``.
 
 
 Input Stream
@@ -816,10 +1360,10 @@ attempt to close this stream, even if it possesses a ``close()``
 method.
 
 
-Values Returned by A WSGI2 Application
+Values Returned by A WSGI 2 Application
 --------------------------------------
 
-WSGI2 applications return a tuple in the form (``status``,
+WSGI 2 applications return a tuple in the form (``status``,
 ``headers``, ``body``).  The ``status`` value is assumed by a gateway
 or server to be an HTTP "status" bytes instance like ``b'200 OK'`` or
 ``b'404 Not Found'``.  That is, it is a string consisting of a
@@ -867,16 +1411,16 @@ Features`_ section below.)
 Dealing with Compatibility Across Python Versions
 -------------------------------------------------
 
-Creating WSGI2 code that runs under both Python 2.6/2.7 and Python
+Creating WSGI 2 code that runs under both Python 2.6/2.7 and Python
 3.1+ requires some care on the part of the developer.  In general, the
-WSGI2 specification assumes a certain level of equivalence between the
+WSGI 2 specification assumes a certain level of equivalence between the
 Python 2 ``str`` type and the Python 3 ``bytes`` type.  For example,
-under Python 2, the values present in the WSGI2 ``environ`` will be
+under Python 2, the values present in the WSGI 2 ``environ`` will be
 instances of the ``str`` type; in Python 3, these will be instances of
 the ``bytes`` type.  The Python 3 ``bytes`` type does not possess all
 the methods of the Python 2 ``str`` type, and some methods which it
 does possess behave differently than the Python 2 ``str`` type.
-Effectively, to ensure that WSGI2 middleware and applications work
+Effectively, to ensure that WSGI 2 middleware and applications work
 across Python versions, developers must do these things:
 
 #) Do not assume comparison equivalence between text values and bytes
@@ -902,7 +1446,7 @@ across Python versions, developers must do these things:
    removed, as it's rumored that bytes types may obtain a ``__mod__``
    implementation.
 
-#) ``__getitem__`` should not be used against str values in WSGI2 code
+#) ``__getitem__`` should not be used against str values in WSGI 2 code
    written using Python 2; ``__getitem__`` against Python 3 bytes
    values returns an integer representation of the byte instead of a
    textual one.  If you use this method, your code will work under
@@ -922,14 +1466,14 @@ across Python versions, developers must do these things:
    make sure you're concatenating two items of the same type,
    e.g. ``b'abc' + somebytes``.
 
-WSGI2 expects byte values in other places, such as in all the values
+WSGI 2 expects byte values in other places, such as in all the values
 returned by an application.
 
-In short, to ensure compatibility of WSGI2 application code between
+In short, to ensure compatibility of WSGI 2 application code between
 Python 2 and Python 3, in Python 2, treat CGI and server variable
 values in the environment as if they had the Python 3 ``bytes`` API
 even though they actually have a more capable API.  Likewise for all
-status and header values returned by a WSGI2 application.
+status and header values returned by a WSGI 2 application.
 
 
 Buffering and Streaming
@@ -941,7 +1485,7 @@ This is a common approach in existing frameworks: the output is
 buffered in a StringIO or similar object, then transmitted all at
 once, along with the response headers.
 
-The corresponding approach in WSGI2 is for the application to simply
+The corresponding approach in WSGI 2 is for the application to simply
 return a single-element ``body`` iterable (such as a list) containing
 the response body as a single string.  This is the recommended
 approach for the vast majority of application functions, that render
@@ -961,7 +1505,7 @@ mulitpart boundaries (for "server push"), or just before
 time-consuming tasks (such as reading another block of an on-disk
 file).
 
-WSGI2 servers, gateways, and middleware **must not** delay the
+WSGI 2 servers, gateways, and middleware **must not** delay the
 transmission of any block; they **must** either fully transmit the
 block to the client, or guarantee that they will continue transmission
 even while the application is producing its next block.  A
@@ -978,7 +1522,7 @@ three ways:
 3. (Middleware only) send the entire block to its parent
    gateway/server.
 
-By providing this guarantee, WSGI2 allows applications to ensure that
+By providing this guarantee, WSGI 2 allows applications to ensure that
 transmission will not become stalled at an arbitrary point in their
 output data.  This is critical for proper functioning of
 e.g. multipart "server push" streaming, where data between multipart
@@ -1009,7 +1553,7 @@ All "bytes instances" **must not** :
 The result of using a textlike object where a byteslike object is
 required is undefined.
 
-Values returned from a WSGI2 app as a status or as response headers
+Values returned from a WSGI 2 app as a status or as response headers
 **must** follow RFC 2616 with respect to encoding.  That is, the bytes
 returned must contain a character stream of ISO-8859-1 characters, or
 the character stream should use RFC 2047 MIME encoding.
@@ -1068,12 +1612,12 @@ sense, a server should consider itself to be like an HTTP "gateway
 server", with the application being an HTTP "origin server".  (See RFC
 2616, section 1.3, for the definition of these terms.)
 
-However, because WSGI2 servers and applications do not communicate via
-HTTP, what RFC 2616 calls "hop-by-hop" headers do not apply to WSGI2
-internal communications.  WSGI2 applications **must not** generate any
+However, because WSGI 2 servers and applications do not communicate via
+HTTP, what RFC 2616 calls "hop-by-hop" headers do not apply to WSGI 2
+internal communications.  WSGI 2 applications **must not** generate any
 "hop-by-hop" headers [4]_, attempt to use HTTP features that would
 require them to generate such headers, or rely on the content of any
-incoming "hop-by-hop" headers in the ``environ`` dictionary.  WSGI2
+incoming "hop-by-hop" headers in the ``environ`` dictionary.  WSGI 2
 servers **must** handle any supported inbound "hop-by-hop" headers on
 their own, such as by decoding any inbound ``Transfer-Encoding``,
 including chunked encoding if applicable.
@@ -1120,7 +1664,7 @@ Server Extension APIs
 Some server authors may wish to expose more advanced APIs, that
 application or framework authors can use for specialized purposes.
 For example, a gateway based on ``mod_python`` might wish to expose
-part of the Apache API as a WSGI2 extension.
+part of the Apache API as a WSGI 2 extension.
 
 In the simplest case, this requires nothing more than defining an
 ``environ`` variable, such as ``mod_python.some_api``.  But, in many
@@ -1130,14 +1674,14 @@ are found in ``environ`` variables, might return different data if
 ``environ`` has been modified by middleware.
 
 In general, any extension API that duplicates, supplants, or bypasses
-some portion of WSGI2 functionality runs the risk of being incompatible
+some portion of WSGI 2 functionality runs the risk of being incompatible
 with middleware components.  Server/gateway developers should *not*
 assume that nobody will use middleware, because some framework
 developers specifically organize their frameworks to function almost
 entirely as middleware of various kinds.
 
 So, to provide maximum compatibility, servers and gateways that
-provide extension APIs that replace some WSGI2 functionality, **must**
+provide extension APIs that replace some WSGI 2 functionality, **must**
 design those APIs so that they are invoked using the portion of the
 API that they replace.  For example, an extension API to access HTTP
 request headers must require the application to pass in its current
@@ -1337,10 +1881,10 @@ a specification with reduced complexity by omitting specialized
 support for asynchronous applications.
 
 To provide backwards compatibility for older WSGI 1.0 applications, so
-that they may run on a WSGI2 stack, it is presumed that WSGI2
+that they may run on a WSGI 2 stack, it is presumed that WSGI 2
 middleware will be created which can be used "in front" of existing
 WSGI 1.0 applications, allowing those existing WSGI 1.0 applications
-to run under a WSGI2 stack.  This middleware will require, when under
+to run under a WSGI 2 stack.  This middleware will require, when under
 Python 3, an equivalence to be drawn between Python 3 ``str`` types
 and the bytes values represented by the HTTP request and all the
 attendant encoding-guessing (or configuration) it implies.
@@ -1354,7 +1898,7 @@ attendant encoding-guessing (or configuration) it implies.
    core and implemented.
 
 Conversely, it is presumed that WSGI 1.0 middleware will be created
-which will allow a WSGI2 application to run behind a WSGI 1.0 stack on
+which will allow a WSGI 2 application to run behind a WSGI 1.0 stack on
 the Python 2 platform.
 
 
@@ -1445,7 +1989,7 @@ return values more pleasant; for example, analogues of the WSGI 1.0
 libraries named "WebOb" and "Werkzeug".  Such libraries will fill the
 gap between convenience and control, allowing the spec to remain
 simple and regular while still allowing casual authors a convenient
-way to create WSGI2 middleware and application components.  This seems
+way to create WSGI 2 middleware and application components.  This seems
 to be a reasonable alternative to baking encoding policy into the
 protocol, because many such libraries can be created independently
 from the protocol, and application developers can choose the one that
@@ -1645,7 +2189,7 @@ When using chunked transfer encoding on request content, the RFCs
 allow there to be request trailers.  These are like request headers
 but come after the final null data chunk.  These trailers are only
 available when the chunked data stream is finite length and when it
-has all been read in.  Neither WSGI nor WSGI2 currently supports them.
+has all been read in.  Neither WSGI nor WSGI 2 currently supports them.
 
 .. XXX (armin) yield from application iterator should be specify write
    plus flush by server.
