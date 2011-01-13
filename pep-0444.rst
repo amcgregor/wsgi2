@@ -474,21 +474,63 @@ The WSGI Environment
 
 The following CGI variables must be present.
 
-|_<. Key |_<. Description |
-|^. ``REQUEST_METHOD`` | The HTTP request method, such as "GET" or "POST". |
-|^. ``SCRIPT_NAME`` | The initial portion of the request URL's "path" that corresponds to the application object, so that the application knows its virtual "location". This may be an empty string if the application corresponds to the "root" of the server. |
-|^. ``PATH_INFO`` | The remainder of the request URL's "path", designating the virtual "location" of the request's target within the application. |
-|^. ``QUERY_STRING`` | The portion of the request URL that follows the ``"?"``, if any, or an empty string. |
-|^. ``PARAMETERS`` | The portion of the request URL that follows the ``";"``, if any, or an empty string. |
-|^. ``SERVER_NAME``<br>``SERVER_PORT`` | When combined with ``SCRIPT_NAME`` and ``PATH_INFO`` these variables can be used to complete the URL. Note, however, that ``HTTP_HOST``, if present, should be used in preference to ``SERVER_NAME`` for reconstructing the request URL. See the URL Reconstruction section below for more detail. |
-|^. ``SERVER_PROTOCOL`` | The version of the protocol the client used to send the request. Typically this will be something like ``"HTTP/1.0"`` or ``"HTTP/1.1"`` and may be used by the application to determine how to treat any HTTP request headers. |
+
++---------------+-----------------------------------------------------+
+| Key                 | Description                                   |
++=====================+===============================================+
+| ``REQUEST_METHOD``  | The HTTP request method, such as "GET" or     |
+|                     | "POST".                                       |
++---------------------+-----------------------------------------------+
+| ``SCRIPT_NAME``     | The initial portion of the request URL's      |
+|                     | "path" that corresponds to the application    |
+|                     | object, so that the application knows its     |
+|                     | virtual "location". This may be an empty      |
+|                     | string if the application corresponds to the  |
+|                     | "root" of the server.                         |
++---------------------+-----------------------------------------------+
+| ``PATH_INFO``       | The remainder of the request URL's "path",    |
+|                     | designating the virtual "location" of the     |
+|                     | request's target within the application.      |
++---------------------+-----------------------------------------------+
+| ``QUERY_STRING``    | The portion of the request URL that follows   |
+|                     | the ``"?"``, if any, or an empty string.      |
++---------------------+-----------------------------------------------+
+| ``PARAMETERS``      | The portion of the request URL that follows   |
+|                     | the ``";"``, if any, or an empty string.      |
++---------------------+-----------------------------------------------+
+| ``SERVER_NAME``     | When combined with ``SCRIPT_NAME`` and        |
+| ``SERVER_PORT``     | ``PATH_INFO`` these variables can be used to  |
+|                     | complete the URL. Note, however, that         |
+|                     | ``HTTP_HOST``, if present, should be used in  |
+|                     | preference to ``SERVER_NAME`` for             |
+|                     | reconstructing the request URL. See the URL   |
+|                     | Reconstruction section below for more detail. |
++---------------------+-----------------------------------------------+
+| ``SERVER_PROTOCOL`` | The version of the protocol the client used   |
+|                     | to send the request. Typically this will be   |
+|                     | something like ``"HTTP/1.0"`` or              |
+|                     | ``"HTTP/1.1"`` and may be used by the         |
+|                     | application to determine how to treat any     |
+|                     | HTTP request headers.                         |
++---------------------+-----------------------------------------------+
 
 The following CGI values may present be in the environment.
 
-|_<. Key |_<. Description |
-|^. ``CONTENT_TYPE`` | The contents of the ``Content-Type`` header in the HTTP request. |
-|^. ``CONTENT_LENGTH`` | The contents of the ``Content-Length`` header in the HTTP request. |
-|^. ``HTTP_*`` Variables | Variables corresponding to the client-supplied HTTP request headers. The presence or absence of these variables should correspond with the presence or absence of the appropriate HTTP header in the request. |
++---------------------+-----------------------------------------------+
+| Key                 | Description                                   |
++=====================+===============================================+
+| ``CONTENT_TYPE``    | The contents of the ``Content-Type`` header   |
+|                     | in the HTTP request.                          |
++---------------------+-----------------------------------------------+
+| ``CONTENT_LENGTH``  | The contents of the ``Content-Length`` header |
+|                     | in the HTTP request.                          |
++---------------------+-----------------------------------------------+
+| ``HTTP_*``          | Variables corresponding to the                |
+|                     | client-supplied HTTP request headers. The     |
+|                     | presence or absence of these variables should |
+|                     | correspond with the presence or absence of    |
+|                     | the appropriate HTTP header in the request.   |
++---------------------+-----------------------------------------------+
 
 A server should attempt to provide as many other CGI variables as are
 applicable. In addition, if SSL is in use, the server should also
@@ -509,22 +551,65 @@ In addition to the CGI-defined variables, the environment dictionary may
 also contain arbitrary operating-system "environment variables", and
 must contain the following WSGI 2 defined variables:
 
-|_<. Key |_<. Description |
-|^. ``wsgi.version`` | The tuple ``(2, 0)``, representing WSGI version 2.0. |
-|^. ``wsgi.url_scheme`` | A value representing the "scheme" portion of the URL at which the application is being invoked. Normally, this will have the value ``"http"`` or ``"https"``, as appropriate. |
-|^. ``wsgi.input`` | An input stream (file-like object) from which bytes constituting the HTTP request body can be read. |
-|^. ``wsgi.errors`` | An output stream (file-like object) to which error output text can be written for the purpose of recording program or other errors in a standardized and possibly centralized location. |
-|^. ``wsgi.multithread`` | This value must evaluate true if the application object may be simultaneously invoked by another thread in the same process, and should evaluate false otherwise. |
-|^. ``wsgi.multiprocess`` | This value must evaluate true if an equivalent application object may be simultaneously invoked by another process, and should evaluate false otherwise. |
-|^. ``wsgi.run_once`` | This value must evaluate true if the server or gateway expects (but does not guarantee) that the application will only be invoked this one time during the life of its containing process. Normally, this will only be true for a gateway based on CGI (or similar). |
-|^. ``wsgi.async`` | This value must evaluate to true if the server is capable of handling asynchronous processing tokens as defined in the Asynchronous Processing chapter. |
++-----------------------+-----------------------------------------------+
+| Key                   | Description                                   |
++=======================+===============================================+
+| ``wsgi.version``      | The tuple ``(2, 0)``, representing WSGI       |
+|                       | version 2.0.                                  |
++-----------------------+-----------------------------------------------+
+| ``wsgi.url_scheme``   | A value representing the "scheme" portion of  |
+|                       | the URL at which the application is being     |
+|                       | invoked. Normally, this will have the value   |
+|                       | ``"http"`` or ``"https"``, as appropriate.    |
++-----------------------+-----------------------------------------------+
+| ``wsgi.input``        | An input stream (file-like object) from which |
+|                       | bytes constituting the HTTP request body can  |
+|                       | be read.                                      |
++-----------------------+-----------------------------------------------+
+| ``wsgi.errors``       | An output stream (file-like object) to which  |
+|                       | error output text can be written for the      |
+|                       | purpose of recording program or other errors  |
+|                       | in a standardized and possibly centralized    |
+|                       | location.                                     |
++-----------------------+-----------------------------------------------+
+| ``wsgi.multithread``  | This value must evaluate true if the          |
+|                       | application object may be simultaneously      |
+|                       | invoked by another thread in the same         |
+|                       | process, and should evaluate false otherwise. |
++-----------------------+-----------------------------------------------+
+| ``wsgi.multiprocess`` | This value must evaluate true if an           |
+|                       | equivalent application object may be          |
+|                       | simultaneously invoked by another process,    |
+|                       | and should evaluate false otherwise.          |
++-----------------------+-----------------------------------------------+
+| ``wsgi.run_once``     | This value must evaluate true if the server   |
+|                       | or gateway expects (but does not guarantee)   |
+|                       | that the application will only be invoked     |
+|                       | this one time during the life of its          |
+|                       | containing process. Normally, this will only  |
+|                       | be true for a gateway based on CGI (or        |
+|                       | similar).                                     |
++-----------------------+-----------------------------------------------+
+| ``wsgi.async``        | This value must evaluate to true if the       |
+|                       | server is capable of handling asynchronous    |
+|                       | processing tokens as defined in the           |
+|                       | Asynchronous Processing chapter.              |
++-----------------------+-----------------------------------------------+
 
 The following environment variables may be present if supported by the
 server:
 
-|_<. Key |_<. Description |
-|^. ``wsgi.script_name`` | The non-URL-decoded SCRIPT_NAME value. This is the original URL-encoded value derived from the request URI. |
-|^. ``web3.path_info`` | The non-URL-decoded PATH_INFO value. This is the original URL-encoded value derived from the request URI. |
++----------------------+-----------------------------------------------+
+| Key                  | Description                                   |
++======================+===============================================+
+| ``wsgi.script_name`` | The non-URL-decoded SCRIPT_NAME value. This   |
+|                      | is the original URL-encoded value derived     |
+|                      | from the request URI.                         |
++----------------------+-----------------------------------------------+
+| ``web3.path_info``   | The non-URL-decoded PATH_INFO value. This is  |
+|                      | the original URL-encoded value derived from   |
+|                      | the request URI.                              |
++----------------------+-----------------------------------------------+
 
 .. note::
 
@@ -546,11 +631,14 @@ Input Stream
 The input stream (``wsgi.input``) provided by the server must support
 the following methods:
 
-|_. Method|_. Notes|
-|``read(size)``|1, 4|
-|``readline([size])``|1, 2, 4|
-|``readlines([size])``|1, 3, 5|
-|``__iter__()``|1, 6|
++-----------------------+---------+
+| Method                | Notes   |
++-----------------------+---------+
+| ``read(size)``        | 1, 4    |
+| ``readline([size])``  | 1, 2, 4 |
+| ``readlines([size])`` | 1, 3, 5 |
+| ``__iter__()``        | 1, 6    |
++-----------------------+---------+
 
 The semantics of each method are as documented in the Python Library
 Reference, except for these notes as listed in the table above:
