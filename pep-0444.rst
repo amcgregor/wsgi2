@@ -172,35 +172,35 @@ method. Applications must:
       order, separated by a single space. (See RFC 2616, Section 6.1.1
       for more information.)
 
-    b. ``headers`` must be a standard Python list containing 2-tuples
-       of ``(name, value)`` pairs representing the HTTP headers of the
-       response. Each header name must represent a valid HTTP header
-       field name (as defined by RFC 2616, Section 4.2) without
-       trailing colon or other punctuation.
+   b. ``headers`` must be a standard Python list containing 2-tuples
+      of ``(name, value)`` pairs representing the HTTP headers of the
+      response. Each header name must represent a valid HTTP header
+      field name (as defined by RFC 2616, Section 4.2) without
+      trailing colon or other punctuation.
 
-    c. ``body`` must be an iterable representing the HTTP response
-       body.
-    
-    d. ``status`` and the name of each header present in ``headers``
-       must not have leading or trailing whitespace.
-    
-    e. ``status``, and the contents of ``headers`` (both name and
-       value) must not contain control characters including carriage
-       returns or linefeeds.
-    
-    f. ``status``, ``headers``, and the chunks yielded by the ``body``
-       iterator should be returned as byte strings, though for
-       implementations where native strings are unicode, native strings
-       may be returned. The server must encode unicode values using
-       ``ISO-8859-1``.
-    
-    g. The amount of data yielded by the body iterable must not exceed
-       the length specified by the ``Content-Length`` response header,
-       if defined.
-    
-    h. The ``body`` iterable *may* be a native string, instead of a
-       native string wrapped in a list for the simple case, but this is
-       *not recommended*.
+   c. ``body`` must be an iterable representing the HTTP response
+      body.
+
+   d. ``status`` and the name of each header present in ``headers``
+      must not have leading or trailing whitespace.
+
+   e. ``status``, and the contents of ``headers`` (both name and
+      value) must not contain control characters including carriage
+      returns or linefeeds.
+
+   f. ``status``, ``headers``, and the chunks yielded by the ``body``
+      iterator should be returned as byte strings, though for
+      implementations where native strings are unicode, native strings
+      may be returned. The server must encode unicode values using
+      ``ISO-8859-1``.
+
+   g. The amount of data yielded by the body iterable must not exceed
+      the length specified by the ``Content-Length`` response header,
+      if defined.
+
+   h. The ``body`` iterable *may* be a native string, instead of a
+      native string wrapped in a list for the simple case, but this is
+      *not recommended*.
 
 Additionally, applications and middleware must not alter HTTP 1.1
 "hop-by-hop" features or headers, any equivalent features in HTTP 1.0,
