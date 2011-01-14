@@ -230,8 +230,8 @@ A WSGI 2 server must:
    relevant specifications that are in effect), the server must add it.
    E.g. the ``Date`` and ``Server`` headers.
 
-    a. The server must not override values with the same name if they
-       are emitted by the application.
+   a. The server must not override values with the same name if they
+      are emitted by the application.
 
 4. Raise an exception if the application attempts to set HTTP 1.1
    "hop-by-hop" or persistence headers, or equivalent headers in HTTP
