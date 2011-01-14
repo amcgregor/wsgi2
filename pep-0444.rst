@@ -38,7 +38,6 @@ easily written which will work under Python 2 versions earlier than 2.6
 nor Python 3 versions earlier than 3.1.
 
 .. note::
-
    Python 2.6 is the first Python version that supported an alias for
    ``bytes`` and the ``b"foo"`` literal syntax. Byte strings are an
    integral part of WSGI 2, thus Python 2.6 being the minimum version
