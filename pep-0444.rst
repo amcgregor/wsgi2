@@ -167,40 +167,40 @@ method. Applications must:
 
 3. Return a 3-tuple of ``(status, headers, body)`` where:
 
-    a. ``status`` must contain the HTTP status code and reason phrase of
-       the response. The status code and reason must be present, in that
-       order, separated by a single space. (See RFC 2616, Section 6.1.1
-       for more information.)
+   a. ``status`` must contain the HTTP status code and reason phrase of
+      the response. The status code and reason must be present, in that
+      order, separated by a single space. (See RFC 2616, Section 6.1.1
+      for more information.)
+
+    b. ``headers`` must be a standard Python list containing 2-tuples
+       of ``(name, value)`` pairs representing the HTTP headers of the
+       response. Each header name must represent a valid HTTP header
+       field name (as defined by RFC 2616, Section 4.2) without
+       trailing colon or other punctuation.
+
+    c. ``body`` must be an iterable representing the HTTP response
+       body.
     
-     b. ``headers`` must be a standard Python list containing 2-tuples
-        of ``(name, value)`` pairs representing the HTTP headers of the
-        response. Each header name must represent a valid HTTP header
-        field name (as defined by RFC 2616, Section 4.2) without
-        trailing colon or other punctuation.
-        
-     c. ``body`` must be an iterable representing the HTTP response
-        body.
+    d. ``status`` and the name of each header present in ``headers``
+       must not have leading or trailing whitespace.
     
-     d. ``status`` and the name of each header present in ``headers``
-        must not have leading or trailing whitespace.
+    e. ``status``, and the contents of ``headers`` (both name and
+       value) must not contain control characters including carriage
+       returns or linefeeds.
     
-     e. ``status``, and the contents of ``headers`` (both name and
-        value) must not contain control characters including carriage
-        returns or linefeeds.
+    f. ``status``, ``headers``, and the chunks yielded by the ``body``
+       iterator should be returned as byte strings, though for
+       implementations where native strings are unicode, native strings
+       may be returned. The server must encode unicode values using
+       ``ISO-8859-1``.
     
-     f. ``status``, ``headers``, and the chunks yielded by the ``body``
-        iterator should be returned as byte strings, though for
-        implementations where native strings are unicode, native strings
-        may be returned. The server must encode unicode values using
-        ``ISO-8859-1``.
+    g. The amount of data yielded by the body iterable must not exceed
+       the length specified by the ``Content-Length`` response header,
+       if defined.
     
-     g. The amount of data yielded by the body iterable must not exceed
-        the length specified by the ``Content-Length`` response header,
-        if defined.
-    
-     h. The ``body`` iterable *may* be a native string, instead of a
-        native string wrapped in a list for the simple case, but this is
-        *not recommended*.
+    h. The ``body`` iterable *may* be a native string, instead of a
+       native string wrapped in a list for the simple case, but this is
+       *not recommended*.
 
 Additionally, applications and middleware must not alter HTTP 1.1
 "hop-by-hop" features or headers, any equivalent features in HTTP 1.0,
@@ -474,8 +474,7 @@ The WSGI Environment
 
 The following CGI variables must be present.
 
-
-+---------------+-----------------------------------------------------+
++---------------------+-----------------------------------------------+
 | Key                 | Description                                   |
 +=====================+===============================================+
 | ``REQUEST_METHOD``  | The HTTP request method, such as "GET" or     |
@@ -643,136 +642,240 @@ the following methods:
 The semantics of each method are as documented in the Python Library
 Reference, except for these notes as listed in the table above:
 
-# The server must honor the client's specified ``Content-Length``, if present, and must:
-## Truncate read requests that would exceed the request body length.
-## After consuming the request body, simulate an end-of-file condition (by returning an empty string) if the application attempts further reads.
-# The implementation must support the optional size argument to ``readline()``.
-# The application is free to not supply a size argument to ``readlines()``, and the server or gateway is free to ignore the value of any supplied size argument.
-# The ``read``, ``readline`` and ``__iter__`` methods must return a bytes instance.
-# The ``readlines()`` method must return a sequence which contains instances of bytes.
-# The ``__iter__`` method must return an iterator yielding instances of bytes.
+1. The server must honor the client's specified ``Content-Length``, if
+   present, and must:
 
-The methods listed in the table above must be supported by all servers conforming to this specification. Applications conforming to this specification must not use any other methods or attributes of the input object. In particular, applications must not attempt to close this stream, even if it possesses a close() method.
+   1. Truncate read requests that would exceed the request body length.
 
+   2. After consuming the request body, simulate an end-of-file
+      condition (by returning an empty string) if the application
+      attempts further reads.
 
-h2. Error Stream
+2. The implementation must support the optional size argument to
+   ``readline()``.
 
-This should be a "text mode" stream; i.e., applications should use "\n" as a line ending, and assume that it will be converted to the correct line ending by the server.
+3. The application is free to not supply a size argument to
+   ``readlines()``, and the server or gateway is free to ignore the value of any supplied size argument.
 
-For many servers, ``wsgi.errors`` will be the server's main error log. Alternatively, this may be ``sys.stderr``, or a log file of some sort. The server's documentation should include an explanation of how to configure this or where to find the recorded output. A server may supply different error streams to different applications, if this is desired.
+4. The ``read``, ``readline`` and ``__iter__`` methods must return a
+   bytes instance.
 
-*Note:* It is highly recommended for servers to implement ``wsgi.errors`` as a wrapper around the standard Python logging module using the ``wsgi.errors`` handler name. This will allow for maximum configurability using standard Python interfaces versus server-specific configuration directives. In addition, there are many different ways to route the Python logging module, including STDERR, on-disk log file, over the network, and via e-mail or instant messenger.
+5. The ``readlines()`` method must return a sequence which contains
+   instances of bytes.
 
-The error stream (``wsgi.errors``) provided by the server must support the following methods:
+6. The ``__iter__`` method must return an iterator yielding instances
+   of bytes.
 
-|_. Method|_. Notes|
-|``flush()``|1|
-|``write(str)``|2|
-|``writelines(seq)``|2|
-
-The semantics of each method are as documented in the Python Library Reference, except for these notes as listed in the table above:
-
-# Since the errors stream may not be rewound, servers and gateways are free to forward write operations immediately, without buffering. In this case, the flush() method may be a no-op. Portable applications, however, cannot assume that output is unbuffered or that flush() is a no-op. They must call flush() if they need to ensure that output has in fact been written. (For example, to minimize intermingling of data from multiple processes writing to the same error log.)
-# The write() method must accept a native string argument.
-# The writelines() method must accept a sequence argument that consists entirely of native strings.
-
-The methods listed in the table above must be supported by all servers conforming to this specification. Applications conforming to this specification must not use any other methods or attributes of the ``wsgi.errors`` object. In particular, applications must not attempt to close this stream, even if it possesses a close() method.
+The methods listed in the table above must be supported by all servers
+conforming to this specification. Applications conforming to this
+specification must not use any other methods or attributes of the input
+object. In particular, applications must not attempt to close this
+stream, even if it possesses a close() method.
 
 
-h2. HTTP Features
+Error Stream
+------------
+
+This should be a "text mode" stream; i.e., applications should use
+``"\n"`` as a line ending, and assume that it will be converted to the
+correct line ending by the server.
+
+For many servers, ``wsgi.errors`` will be the server's main error log.
+Alternatively, this may be ``sys.stderr``, or a log file of some sort.
+The server's documentation should include an explanation of how to
+configure this or where to find the recorded output. A server may supply
+different error streams to different applications, if this is desired.
+
+*Note:* It is highly recommended for servers to implement
+``wsgi.errors`` as a wrapper around the standard Python logging module
+using the ``wsgi.errors`` handler name. This will allow for maximum
+configurability using standard Python interfaces versus server-specific
+configuration directives. In addition, there are many different ways to
+route the Python logging module, including STDERR, on-disk log file,
+over the network, and via e-mail or instant messenger.
+
+The error stream (``wsgi.errors``) provided by the server must support
+the following methods:
+
++---------------------+-------+
+| Method              | Notes |
++=====================+=======+
+| ``flush()``         | 1     |
++---------------------+-------+
+| ``write(str)``      | 2     |
++---------------------+-------+
+| ``writelines(seq)`` | 2     |
++---------------------+-------+
+
+The semantics of each method are as documented in the Python Library
+Reference, except for these notes as listed in the table above:
+
+1. Since the errors stream may not be rewound, servers and gateways are
+   free to forward write operations immediately, without buffering. In
+   this case, the ``flush()`` method may be a no-op. Portable
+   applications, however, cannot assume that output is unbuffered or
+   that ``flush()`` is a no-op. They must call ``flush()`` if they need
+   to ensure that output has in fact been written. (For example, to
+   minimize intermingling of data from multiple processes writing to the
+   same error log.)
+
+2. The ``write()`` method must accept a native string argument.
+
+3. The ``writelines()`` method must accept a sequence argument that
+   consists entirely of native strings.
+
+The methods listed in the table above must be supported by all servers
+conforming to this specification. Applications conforming to this
+specification must not use any other methods or attributes of the
+``wsgi.errors`` object. In particular, applications must not attempt to
+close this stream, even if it possesses a close() method.
+
+
+HTTP Features
+-------------
 
 Servers should:
 
-# Be conservative in their implementation and generally allow applications complete control over their output.
-# Only make changes that do not alter the effective semantics of the application's response.
+1. Be conservative in their implementation and generally allow
+   applications complete control over their output.
 
-In a sense, a server should consider itself to be like an HTTP "gateway server", with the application being an HTTP "origin server". (See RFC 2616, section 1.3, for the definition of these terms.)
+2. Only make changes that do not alter the effective semantics of the
+   application's response.
 
-However, because WSGI 2 servers and applications do not communicate via HTTP, what RFC 2616 calls "hop-by-hop" headers do not apply to WSGI 2 internal communications.
+In a sense, a server should consider itself to be like an HTTP "gateway
+server", with the application being an HTTP "origin server". (See RFC
+2616, section 1.3, for the definition of these terms.)
+
+However, because WSGI 2 servers and applications do not communicate via
+HTTP, what RFC 2616 calls "hop-by-hop" headers do not apply to WSGI 2
+internal communications.
 
 Applications must not:
 
-# Generate any "hop-by-hop" headers[4].
-# Attempt to use HTTP features that would require them to generate such headers.
-# Rely on the content of any incoming "hop-by-hop" headers in the environment dictionary.
-# Apply a transport encoding to its response body.
+1. Generate any "hop-by-hop" headers[4].
+
+2. Attempt to use HTTP features that would require them to generate such
+   headers.
+
+3. Rely on the content of any incoming "hop-by-hop" headers in the
+   environment dictionary.
+
+4. Apply a transport encoding to its response body.
 
 Servers must:
 
-# Handle any supported inbound "hop-by-hop" headers on their own.
-# Provide transparent support for HTTP 1.1 Expect/Continue. This can be accomplished in one of two ways:
-## Respond to requests containing an ``"Expect: 100-continue"`` request with an immediate ``"100 Continue"`` response, and proceed normally.
-## Proceed with the request normally, but provide the application with a ``wsgi.input`` stream that will send the ``"100 Continue"`` response if/when the application first attempts to read from the input stream. The read request must then remain blocked until the client responds.
-# Provide transparent support for chunked transfer encoding of request bodies.
-# Provide transparent support for chunked transfer encoding of response bodies if:
-## The ``Content-Length`` header is missing from the response, or;
-## The ``Transfer-Encoding`` response header is set to ``"chunked"``, even if a ``Content-Length`` header is provided.
+1. Handle any supported inbound "hop-by-hop" headers on their own.
 
-Note that these behavior restrictions do not apply for HTTP 1.0 requests or for requests that are not directed to an application object. Not defining a ``Content-Length`` for responses to HTTP 1.0 requests must still be treated as an error condition by the server, for example.
+2. Provide transparent support for HTTP 1.1 Expect/Continue. This can be
+   accomplished in one of two ways:
 
-For more information on HTTP 1.1 Expect/Continue, see RFC 2616, sections 8.2.3 and 10.1.1. For more information on chunked transfer encoding, see RFC 2616, section 3.6.1.
+   1. Respond to requests containing an ``"Expect: 100-continue"``
+      request with an immediate ``"100 Continue"`` response, and proceed
+      normally.
+
+   2. Proceed with the request normally, but provide the application
+      with a ``wsgi.input`` stream that will send the ``"100 Continue"``
+      response if/when the application first attempts to read from the
+      input stream. The read request must then remain blocked until the
+      client responds.
+
+3. Provide transparent support for chunked transfer encoding of request
+   bodies.
+
+4. Provide transparent support for chunked transfer encoding of response
+   bodies if:
+
+   1. The ``Content-Length`` header is missing from the response, or;
+
+   2. The ``Transfer-Encoding`` response header is set to ``"chunked"``,
+      even if a ``Content-Length`` header is provided.
+
+Note that these behavior restrictions do not apply for HTTP 1.0 requests
+or for requests that are not directed to an application object. Not
+defining a ``Content-Length`` for responses to HTTP 1.0 requests must
+still be treated as an error condition by the server, for example.
+
+For more information on HTTP 1.1 Expect/Continue, see RFC 2616, sections
+8.2.3 and 10.1.1. For more information on chunked transfer encoding, see
+RFC 2616, section 3.6.1.
 
 Servers must not, and applications should:
 
-# Handle cache validation via the ``If-None-Match`` and ``If-Modified-Since`` request headers and the ``Last-Modified`` and ``ETag@ response headers.
-# Handle byte range transmission of the application's response.
+1. Handle cache validation via the ``If-None-Match`` and
+   ``If-Modified-Since`` request headers and the ``Last-Modified`` and
+   ``ETag`` response headers.
 
-Similarly, a server may re-encode or transport-encode an application's response, but the application should use a suitable content encoding on its own.
+2. Handle byte range transmission of the application's response.
 
-Note that these restrictions on applications do not necessarily mean that every application must re-implement every HTTP feature; many HTTP features can be partially or fully implemented by middleware or filter components, thus freeing both server and application authors from implementing the same features over and over again.
+Similarly, a server may re-encode or transport-encode an application's
+response, but the application should use a suitable content encoding on
+its own.
 
-
-
-h1. Python Cross-Version Compatibility
-
-bq. *Status:* TBD.
-
-
-h1. Rationale
-
-bq. *Status:* TBD.
+Note that these restrictions on applications do not necessarily mean
+that every application must re-implement every HTTP feature; many HTTP
+features can be partially or fully implemented by middleware or filter
+components, thus freeing both server and application authors from
+implementing the same features over and over again.
 
 
 
-h1. Examples
+Python Cross-Version Compatibility
+==================================
 
-h2. Functional Application Example
-
-bq. *Status:* TBD.<br>*Note:* Demonstrate a function-based "hello world" WSGI application.
-
-The following is a simple, function-based "hello world" example application, compatible with Python 2.x and 3.x.
-
-<pre><code>def hello(environ):
-    status = "200 OK"
-    body = "Hello world!"
-    
-    headers = [
-            ("Content-Type", "text/plain"),
-            ("Content-Length", str(len(body)))
-        ]
-    
-    return status, headers, [body]</code></pre>
+*Status:* TBD
 
 
-h2. Class Instance Application Example
+Rationale
+=========
 
-bq. *Status:* TBD.<br>*Note:* Demonstrate a class instance-based "hello world" WSGI application.
+*Status:* TBD.
 
-The following is a simple, class-based "hello world" example application, compatible with Python 2.x and 3.x.
 
-<pre><code>class Hello(object):
-    def __call__(self, environ):
+
+Examples
+========
+
+Functional Application Example
+------------------------------
+
+The following is a simple, function-based "hello world" example
+application, compatible with Python 2.x and 3.x.
+
+::
+
+    def hello(environ):
         status = "200 OK"
         body = "Hello world!"
-    
+        
         headers = [
                 ("Content-Type", "text/plain"),
                 ("Content-Length", str(len(body)))
             ]
-    
+        
         return status, headers, [body]
 
-hello = Hello()</code></pre>
+
+Class Instance Application Example
+----------------------------------
+
+The following is a simple, class-based "hello world" example
+application, compatible with Python 2.x and 3.x.
+
+::
+
+    class Hello(object):
+        def __call__(self, environ):
+            status = "200 OK"
+            body = "Hello world!"
+            
+            headers = [
+                    ("Content-Type", "text/plain"),
+                    ("Content-Length", str(len(body)))
+                ]
+            
+            return status, headers, [body]
+    
+    hello = Hello()
 
 
 h2. Middleware Example
@@ -783,7 +886,7 @@ bq. *Status:* TBD.<br>*Note:* Demonstrate simple (and robust) benchmarking middl
 h2. Filtering Middleware Example
 
 bq. *Status:* TBD.<br>*Note:* Demonstrate the filtering API as middleware.
-
+ 
 
 h2. CGI Server Example
 
