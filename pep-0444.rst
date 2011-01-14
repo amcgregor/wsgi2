@@ -39,11 +39,11 @@ nor Python 3 versions earlier than 3.1.
 
 .. note::
 
-    Python 2.6 is the first Python version that supported an alias for
-    ``bytes`` and the ``b"foo"`` literal syntax. Byte strings are an
-    integral part of WSGI 2, thus Python 2.6 being the minimum version
-    supported. While developers may attempt to provide solutions for
-    earlier versions, such compatibility is not defined herein.
+   Python 2.6 is the first Python version that supported an alias for
+   ``bytes`` and the ``b"foo"`` literal syntax. Byte strings are an
+   integral part of WSGI 2, thus Python 2.6 being the minimum version
+   supported. While developers may attempt to provide solutions for
+   earlier versions, such compatibility is not defined herein.
 
 
 Rationale and Goals
@@ -51,7 +51,7 @@ Rationale and Goals
 
 .. note::
 
-    This section to be written.
+   This section to be written.
 
 
 Definitions
@@ -90,7 +90,7 @@ Differences from PEP 3333 / WSGI 1.0.1
 
 .. note::
 
-    This section to be written.
+   This section to be written.
 
 
 Specification Overview
@@ -141,13 +141,13 @@ called, not introspected.
 
 .. note::
 
-    Although we refer to it as an "application", this should not be
-    construed to mean that application developers will use WSGI 2 as a
-    web programming API. It is assumed that application developers will
-    continue to use existing, high-level framework services to develop
-    their applications. WSGI 2 is a tool for framework and server
-    developers, and is not intended to directly support application
-    developers.
+   Although we refer to it as an "application", this should not be
+   construed to mean that application developers will use WSGI 2 as a
+   web programming API. It is assumed that application developers will
+   continue to use existing, high-level framework services to develop
+   their applications. WSGI 2 is a tool for framework and server
+   developers, and is not intended to directly support application
+   developers.
 
 
 Application / Framework API
@@ -354,10 +354,10 @@ creating what is referred to as a "middleware stack".
 
 .. note::
 
-    Care must be taken when modifying the returned body. If the amount
-    of data returned will differ and a ``Content-Length`` header is
-    present, it must be updated to reflect the true length of the body
-    returned by the middleware.
+   Care must be taken when modifying the returned body. If the amount
+   of data returned will differ and a ``Content-Length`` header is
+   present, it must be updated to reflect the true length of the body
+   returned by the middleware.
 
 
 Filter API
@@ -365,8 +365,8 @@ Filter API
 
 .. note::
 
-    There is strong contention on the mailing list whether this should
-    be included in the PEP.
+   There is strong contention on the mailing list whether this should
+   be included in the PEP.
 
 A large amount of middleware only applies changes to the environment
 coming in from the server before reaching the application, or,
@@ -423,8 +423,8 @@ those passed in.
 
 .. note::
 
-    As per middleware, care must be taken when modifying the returned
-    body.
+   As per middleware, care must be taken when modifying the returned
+   body.
 
 
 Asynchronous Processing
@@ -432,7 +432,7 @@ Asynchronous Processing
 
 .. note::
 
-    This section to be written.
+   This section to be written.
 
 
 Implementation Details
@@ -612,9 +612,9 @@ server:
 
 .. note::
 
-    Through a historical inequity, by virtue of the CGI specification,
-    ``SCRIPT_NAME`` and ``PATH_INFO`` are present within the environment
-    as an already URL-decoded string.
+   Through a historical inequity, by virtue of the CGI specification,
+   ``SCRIPT_NAME`` and ``PATH_INFO`` are present within the environment
+   as an already URL-decoded string.
 
 Finally, the environment dictionary may also contain server-defined
 variables. These variables must have names which are composed of only
